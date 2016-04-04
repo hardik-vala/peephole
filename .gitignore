@@ -1,0 +1,20 @@
+# Stupid MAC OS X folder utility files.
+.DS_Store
+
+# Jasmin files.
+*.j
+
+# Class files.
+*.class
+
+# Dumps.
+*.optdump
+*.dump
+
+# C library binaries.
+*.o 
+
+# Flex files.
+lex.*
+# YACC files.
+y.tab.*
