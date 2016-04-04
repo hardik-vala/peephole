@@ -5,7 +5,7 @@ joosc: clean
 	$(PEEPDIR)/joosc *.java
 
 java: clean
-	javac -cp ../../jooslib.jar: *.java
+	javac -cp $(PEEPDIR)/jooslib.jar: *.java
 
 check:	
 	./check.py
