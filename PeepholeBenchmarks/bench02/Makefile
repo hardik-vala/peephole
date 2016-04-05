@@ -11,4 +11,4 @@ check:
 	./check.py
 
 clean:	
-	rm -rf *.class *.j
+	rm -rf *.class *.j *.dump *.optdump
