@@ -9,16 +9,15 @@
 * Collapse consecutive labels
 * Consectuive ineg's
 * Swap appearing before an addition or multiplcation
-* dup'ing and then branching
 * Loading a constant and then branching
 * Strip instructions following a return up to the next label
 * Generalize Lauries's "GOTO" pattern for conditional branching
 * Explicit 'intanceof'
 * Change astore, aload k to astore_, aload_k (same for istore, iload)
-* Remove dup and pop that come before and after astore, istore
-* Remove all nopts
 
 ## DONE
-* dup and then a load and then a pop
+* a load and then a pop
 * Strip nop's
 * An iload followed by an istore (Same for aload/astore and field)
+* Remove dup and pop that come before and after astore, istore
+* dup'ing and then compare equals branching

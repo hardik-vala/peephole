@@ -10,6 +10,44 @@
  * email: hendren@cs.mcgill.ca, mis@brics.dk
  */
 
+/* Handle dup'ing and then compare equals branching */
+int simplify_dup_cmpeq(CODE **c)
+{
+  int x,y;
+  if (is_dup(*c))
+  {
+    if (is_if_acmpeq(*c,&x))
+    {
+      return replace_modified(c,2, makeCODEgoto(x, NULL));
+    }
+    else if (is_if_icmpeq(*c,&y))
+    {
+      return replace_modified(c,2, makeCODEgoto(y, NULL));
+    }
+  }
+  return 0;
+}
+
+/* load 1
+ * load 1
+ * ------->
+ * load 1
+ * dup
+ */
+int replace_double_load_with_dup(CODE **c)
+{
+  int x,y;
+  if ((is_iload(*c, &x) && is_iload(next(*c), &y)) || (is_aload(*c, &x) && is_aload(next(*c), &y)))
+  {
+    if (x == y)
+    {
+      CODE* n = next(*c);
+      return replace(&n, 1, makeCODEdup(NULL));
+    }
+  }
+  return 0;
+}
+
 /* Delete nops because they do nothing */
 int rm_nops(CODE **c)
 {
@@ -173,9 +211,11 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 9
+#define OPTS 10
 
-OPTI optimization[OPTS] = { rm_same_aload_astore,
+OPTI optimization[OPTS] = { 
+  simplify_dup_cmpeq,
+  rm_same_aload_astore,
   rm_redundant_loads,
   rm_same_iload_istore,
   simplify_istore,
