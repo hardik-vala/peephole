@@ -23,4 +23,5 @@ test:
 	javac -cp $(PEEPDIR)/lib/junit-4.12.jar: $(PEEPBENCHDIR)/test/*.java
 	$(PEEPDIR)/scripts/compile_run_bench1.sh
 	$(PEEPDIR)/scripts/compile_run_bench2.sh
+	$(PEEPDIR)/scripts/compile_run_bench3.sh
 	cd $(PEEPBENCHDIR) && java -cp $(PEEPDIR)/lib/hamcrest-core-1.3.jar:$(PEEPDIR)/lib/junit-4.12.jar: org.junit.runner.JUnitCore test.BenchmarkTestSuite
