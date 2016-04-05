@@ -6,7 +6,8 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-	Benchmark1Test.class
+	Benchmark1Test.class,
+	Benchmark2Test.class
 })
 
 public class BenchmarkTestSuite {

@@ -6,11 +6,14 @@ joosc: clean
 joosco: clean
 	$(PEEPDIR)/joosc -O *.java
 
-javac: clean
+javac:
 	javac -cp $(PEEPDIR)/jooslib.jar: *.java
 
 check:	
 	./check.py
+
+run:
+	java -cp $(PEEPDIR)/jooslib.jar: Main < in1 > gen1
 
 clean:	
 	rm -rf *.class *.j *.dump *.optdump

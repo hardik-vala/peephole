@@ -19,7 +19,7 @@ build:
 # Test the running of the Benchmarks (Pre-condition: JOOS compilation of
 # Benchmarks).
 test:
-	cd $(PEEPBENCHDIR)/bench01 && $(MAKE) -f Makefile javac # Java compile Benchmark #1 sources.
-	javac -cp $(PEEPDIR)/lib/junit-4.12.jar: $(PEEPBENCHDIR)/test/*.java # Compile the Benchmark tests.
-	cd $(PEEPBENCHDIR)/bench01 && $(MAKE) -f Makefile run # Run Benchmark #1.
-	cd $(PEEPBENCHDIR) && java -cp $(PEEPDIR)/lib/hamcrest-core-1.3.jar:$(PEEPDIR)/lib/junit-4.12.jar: org.junit.runner.JUnitCore test.BenchmarkTestSuite # Test Benchmark #1.
+	javac -cp $(PEEPDIR)/lib/junit-4.12.jar: $(PEEPBENCHDIR)/test/*.java
+	$(PEEPDIR)/scripts/compile_run_bench1.sh
+	$(PEEPDIR)/scripts/compile_run_bench2.sh
+	cd $(PEEPBENCHDIR) && java -cp $(PEEPDIR)/lib/hamcrest-core-1.3.jar:$(PEEPDIR)/lib/junit-4.12.jar: org.junit.runner.JUnitCore test.BenchmarkTestSuite
