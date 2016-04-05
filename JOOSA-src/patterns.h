@@ -294,7 +294,7 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 10
+#define OPTS 14
 
 OPTI optimization[OPTS] = {
   simplify_dup_cmpeq,
@@ -303,10 +303,14 @@ OPTI optimization[OPTS] = {
   rm_same_iload_istore,
   simplify_istore,
   rm_nops,
-                            simplify_multiplication_right,
-                            simplify_astore,
-                            positive_increment,
-                            simplify_goto_goto};
+  simplify_addition_left,
+  simplify_addition_right,
+  simpify_subtraction_right,
+  simplify_multiplication_left,
+  simplify_multiplication_right,
+  simplify_astore,
+  positive_increment,
+  simplify_goto_goto};
 
 /*
 int init_patterns()
