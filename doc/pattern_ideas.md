@@ -14,6 +14,9 @@
 * Strip instructions following a return up to the next label
 * Generalize Lauries's "GOTO" pattern for conditional branching
 * Explicit 'intanceof'
+* Change astore, aload k to astore_, aload_k (same for istore, iload)
+* Remove dup and pop that come before and after astore, istore
+* Remove all nopts
 
 ## DONE
 * dup and then a load and then a pop
