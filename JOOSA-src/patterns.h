@@ -10,6 +10,87 @@
  * email: hendren@cs.mcgill.ca, mis@brics.dk
  */
 
+/*
+ * ldc 0
+ * iload x
+ * iadd
+ * ------>
+ * iload x
+ */
+
+int simplify_addition_left(CODE **c) {
+    int x, k;
+    if (is_ldc_int(*c, &k) && is_iload(next(*c), &x) && is_iadd(next(next(*c)))) {
+        if (k == 0) {
+            return replace(c, 3, makeCODEiload(x, NULL));
+        }
+        return 0;
+    }
+    return 0;
+}
+
+/*
+ * iload x
+ * ldc 0
+ * iadd
+ * ------>
+ * iload x
+ */
+
+int simplify_addition_right(CODE **c) {
+    int x, k;
+    if (is_iload(*c, &x) && is_ldc_int(next(*c), &k) && is_iadd(next(next(*c)))) {
+        if (k == 0) {
+            return replace(c, 3, makeCODEiload(x, NULL));
+        }
+        return 0;
+    }
+    return 0;
+}
+
+/*
+ * iload x
+ * idc 0
+ * isub
+ * ------>
+ * iload x
+ */
+
+int simpify_subtraction_right(CODE **c) {
+    int x, k;
+    if (is_iload(*c, &x) && is_ldc_int(next(*c), &k) && is_isub(next(next(*c)))) {
+        if (k == 0) {
+            return replace(c, 3, makeCODEiload(x, NULL));
+        }
+        return 0;
+    }
+    return 0;
+}
+
+/* ldc 0            ldc 1           ldc 2
+ * iload x          iload x         iload x
+ * imul             imul            imul
+ * ------>          ------>         ------>
+ * ldc 0            iload x         iload x
+ *                                  dup
+ *                                  iadd
+ */
+
+int simplify_multiplication_left(CODE **c) {
+    int x, k;
+    if (is_ldc_int(*c, &k) && is_iload(next(*c), &x) && is_imul(next(next(*c)))) {
+        if (k == 0){
+            return replace(c, 3, makeCODEldc_int(0, NULL));
+        } else if (k == 1) {
+            return replace(c, 3, makeCODEiload(x, NULL));
+        } else if (k == 2) {
+            return replace(c, 3, makeCODEiload(x, makeCODEdup(makeCODEiadd(NULL))));
+        }
+        return 0;
+    }
+    return 0;
+}
+
 /* iload x        iload x        iload x
  * ldc 0          ldc 1          ldc 2
  * imul           imul           imul
@@ -33,6 +114,8 @@ int simplify_multiplication_right(CODE **c)
   }
   return 0;
 }
+
+
 
 /* dup
  * astore x
@@ -99,10 +182,11 @@ OPTI optimization[OPTS] = { simplify_multiplication_right,
                             simplify_astore,
                             positive_increment,
                             simplify_goto_goto};
-
-//int init_patterns()
-//{ ADD_PATTERN(simplify_multiplication_right);
-//  ADD_PATTERN(simplify_astore);
-//  ADD_PATTERN(positive_increment);
-//  ADD_PATTERN(simplify_goto_goto);
-//}
+/*
+int init_patterns()
+{ ADD_PATTERN(simplify_multiplication_right);
+  ADD_PATTERN(simplify_astore);
+  ADD_PATTERN(positive_increment);
+  ADD_PATTERN(simplify_goto_goto);
+}
+*/
