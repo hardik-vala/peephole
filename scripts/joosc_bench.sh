@@ -28,7 +28,7 @@ then
 	for bd in ${bench_dirs[@]}
 	do
 		cd $bd
-		make -f Makefile joosc_opt
+		make -f Makefile joosco
 	done
 # Without optimizations.
 else

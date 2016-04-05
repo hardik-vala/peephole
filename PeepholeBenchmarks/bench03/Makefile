@@ -1,7 +1,7 @@
 joosc: clean
 	$(PEEPDIR)/joosc *.java *.joos
 
-joosc_opt: clean
+joosco: clean
 	$(PEEPDIR)/joosc -O *.java *.joos
 
 clean:	
