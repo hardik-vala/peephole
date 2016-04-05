@@ -12,9 +12,9 @@ if ( { $PEEPDIR/joos $* } )  then
     if ( $f != "-O" && $f:e != "joos" ) then
       java -jar $PEEPDIR/jasmin.jar $f:r.j
       if ( $1 == "-O" ) then
-	$PEEPDIR/djas $f:r.class > $f:r.optdump
+	$PEEPDIR/djas -w $f:r.class > $f:r.optdump
       else
-	$PEEPDIR/djas $f:r.class > $f:r.dump
+	$PEEPDIR/djas -w $f:r.class > $f:r.dump
       endif
     endif
   end
