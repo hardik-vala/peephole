@@ -21,3 +21,8 @@ y.tab.*
 
 # Generated JOOS binary.
 JOOSA-src/joos
+
+# Outputs of runnng Benchmarks.
+PeepholeBenchmarks/bench01/gen1
+PeepholeBenchmarks/bench02/gen1
+
