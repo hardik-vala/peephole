@@ -10,6 +10,86 @@
  * email: hendren@cs.mcgill.ca, mis@brics.dk
  */
 
+/* Delete nops because they do nothing */
+int rm_nops(CODE **c)
+{
+  if (is_nop(*c))
+  {
+    return(kill_line(c));
+  }
+  return 0;
+}
+
+/* dup
+ * istore
+ * pop
+ * ----->
+ * istore x
+ */
+int simplify_istore(CODE **c)
+{
+  int x;
+  if (is_dup(*c) && is_istore(next(*c), &x) && is_pop(next(next(*c)))) 
+  {
+    return replace(c,3,makeCODEistore(x,NULL));
+  }
+  return 0;
+}
+
+/* remove any sort of loads followed by pops
+ */
+int rm_redundant_loads(CODE **c)
+{
+  int x;
+  if (is_iload(*c, &x) && is_pop(next(*c)))
+  {
+    CODE *n = next(*c);
+    kill_line(&n);
+    return kill_line(c);
+  }
+  return 0;
+}
+
+/* iload 1
+ * istore 1
+ * -------->
+ * 
+ */
+ int rm_same_iload_istore(CODE **c)
+ {
+  int x,y;
+  if (is_iload(*c,&x) && is_istore(next(*c),&y))
+  {
+    if (x==y)
+    {
+      CODE* n = next(*c);
+      kill_line(&n);
+      return(kill_line(c));
+    }
+  }
+  return 0;
+ }
+
+ /* aload 1
+ * astore 1
+ * -------->
+ * 
+ */
+ int rm_same_aload_astore(CODE **c)
+ {
+  int x,y;
+  if (is_aload(*c,&x) && is_astore(next(*c),&y))
+  {
+    if (x==y)
+    {
+      CODE* n = next(*c);
+      kill_line(&n);
+      return(kill_line(c));
+    }
+  }
+  return 0;
+ }
+
 /* iload x        iload x        iload x
  * ldc 0          ldc 1          ldc 2
  * imul           imul           imul
@@ -93,16 +173,14 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 4
+#define OPTS 9
 
-OPTI optimization[OPTS] = {simplify_multiplication_right,
+OPTI optimization[OPTS] = { rm_same_aload_astore,
+  rm_redundant_loads,
+  rm_same_iload_istore,
+  simplify_istore,
+  rm_nops,
+                            simplify_multiplication_right,
                             simplify_astore,
                             positive_increment,
                             simplify_goto_goto};
-
-//int init_patterns()
-//{ ADD_PATTERN(simplify_multiplication_right);
-//  ADD_PATTERN(simplify_astore);
-//  ADD_PATTERN(positive_increment);
-//  ADD_PATTERN(simplify_goto_goto);
-//}
