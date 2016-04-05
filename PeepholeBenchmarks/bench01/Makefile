@@ -1,7 +1,7 @@
 joosc: clean
 	$(PEEPDIR)/joosc *.java
 
-joosc_opt: clean
+joosco: clean
 	$(PEEPDIR)/joosc -O *.java
 
 javac:
@@ -12,4 +12,3 @@ run:
 
 clean:	
 	rm -rf *.class *.j *~ *.dump *.optdump
-
