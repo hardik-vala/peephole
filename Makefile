@@ -6,7 +6,7 @@ joosco: build
 	$(PEEPDIR)/scripts/total_code_length_bench.sh -O
 	@$(MAKE) test >& test.log
 	@less test.log
-	@rm test.log
+	@rm -f test.log
 
 # JOOS compile the Benchmarks with no optimizations.
 joosc: build
@@ -19,6 +19,7 @@ build:
 # Test the running of the Benchmarks (Pre-condition: JOOS compilation of
 # Benchmarks).
 test:
+	rm -rf $(PEEPBENCHDIR)/test/*.class
 	javac -cp $(PEEPDIR)/lib/junit-4.12.jar: $(PEEPBENCHDIR)/test/*.java
 	$(PEEPDIR)/scripts/compile_run_bench1.sh
 	$(PEEPDIR)/scripts/compile_run_bench2.sh
