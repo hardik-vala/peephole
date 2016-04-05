@@ -1,6 +1,9 @@
 joosc: clean
 	$(PEEPDIR)/joosc *.java
 
+joosc_opt: clean
+	$(PEEPDIR)/joosc -O *.java
+
 javac: clean
 	javac -cp $(PEEPDIR)/jooslib.jar: *.java
 
