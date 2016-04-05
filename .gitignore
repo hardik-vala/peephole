@@ -23,6 +23,4 @@ y.tab.*
 JOOSA-src/joos
 
 # Outputs of runnng Benchmarks.
-PeepholeBenchmarks/bench01/gen1
-PeepholeBenchmarks/bench02/gen1
-
+gen1
