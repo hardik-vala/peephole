@@ -9,7 +9,10 @@ import org.junit.runners.Suite;
 	Benchmark1Test.class,
 	Benchmark2Test.class,
 	Benchmark3Test.class,
-	Benchmark4Test.class
+	Benchmark4Test.class,
+	Benchmark5Test.class,
+	Benchmark6Test.class,
+	Benchmark7Test.class
 })
 
 public class BenchmarkTestSuite {
