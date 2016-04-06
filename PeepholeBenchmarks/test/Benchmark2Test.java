@@ -26,7 +26,7 @@ public class Benchmark2Test {
 	private static final String GEN_OUT_PATH = DIR_PATH + File.separator + "gen1";
 
     @Test
-    public void benchmark2Test() throws InterruptedException, IOException {
+    public void test() throws IOException {
         // Read the expected output from file.
         String exp = "";
         try (BufferedReader r = new BufferedReader(new FileReader(EXP_OUT_PATH))) {
