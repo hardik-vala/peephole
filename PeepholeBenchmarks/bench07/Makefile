@@ -9,10 +9,10 @@ joosco: $(SRC) clean
 	$(PEEPDIR)/joosc -O $(SRC)
 
 javac: $(SRC)
-	javac -cp $(PEEPDIR)/jooslib.jar: $(SRC)
+	javac -cp $(PEEPDIR)/lib/jooslib.jar: $(SRC)
 
 run:
-	java -cp $(PEEPDIR)/jooslib.jar: GrueHunt < in1 >& gen1
+	java -cp $(PEEPDIR)/lib/jooslib.jar: GrueHunt < in1 >& gen1
 
 clean:
 	rm -f *.class *.j *.optdump *.dump

@@ -7,13 +7,13 @@ joosco: clean
 	$(PEEPDIR)/joosc -O *.java
 
 javac:
-	javac -cp $(PEEPDIR)/jooslib.jar: *.java
+	javac -cp $(PEEPDIR)/lib/jooslib.jar: *.java
 
 check:	
 	./check.py
 
 run:
-	java -cp $(PEEPDIR)/jooslib.jar: Main < in1 >& gen1
+	java -cp $(PEEPDIR)/lib/jooslib.jar: Main < in1 >& gen1
 
 clean:	
 	rm -rf *.class *.j *~ *.dump *.optdump
