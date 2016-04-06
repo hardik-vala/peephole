@@ -10,14 +10,14 @@ import org.junit.Test;
 
 
 /**
- * Benchmark #1 test.
+ * Benchmark #3 test.
  *
- * @precondition Benchmark #1 has been run and the output saved to file.
+ * @precondition Benchmark #3 has been run and the output saved to file.
  */
-public class Benchmark1Test {
+public class Benchmark3Test {
 
-    /** Path to Benchmark #1 directory. */
-    private static final String DIR_PATH = "bench01";
+    /** Path to Benchmark #3 directory. */
+    private static final String DIR_PATH = "bench03";
 
 	/** Path to file with expected output. */
     private static final String EXP_OUT_PATH = DIR_PATH + File.separator + "out1";

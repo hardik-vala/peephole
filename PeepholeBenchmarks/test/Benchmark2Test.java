@@ -1,9 +1,8 @@
 package test;
 
-import java.io.BufferedReader;
+import test.Utils;
+
 import java.io.File;
-import java.io.FileReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
@@ -26,20 +25,11 @@ public class Benchmark2Test {
 	private static final String GEN_OUT_PATH = DIR_PATH + File.separator + "gen1";
 
     @Test
-    public void benchmark2Test() throws InterruptedException, IOException {
-        // Read the expected output from file.
-        String exp = "";
-        try (BufferedReader r = new BufferedReader(new FileReader(EXP_OUT_PATH))) {
-        	String s;
-       		while ((s = r.readLine()) != null) exp += s + "\n";
-        }
-
-        // Read the generated output from file.
-        String gen = "";
-        try (BufferedReader r = new BufferedReader(new FileReader(GEN_OUT_PATH))) {
-            String s;
-            while ((s = r.readLine()) != null) gen += s + "\n";
-        }
+    public void test() throws IOException {
+        // Expected output.
+        String exp = Utils.slurp(EXP_OUT_PATH);
+        // Generated output.
+        String gen = Utils.slurp(GEN_OUT_PATH);
 
         // Assert they be equal.
         assertEquals(exp, gen);

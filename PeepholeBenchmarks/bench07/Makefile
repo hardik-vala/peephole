@@ -8,13 +8,11 @@ joosc: $(SRC) clean
 joosco: $(SRC) clean
 	$(PEEPDIR)/joosc -O $(SRC)
 
-GrueHunt: $(SRC)
-	javac -cp $(PEEPDIR)/jooslib.jar: $(SRC)
+javac: $(SRC)
+	javac -cp $(PEEPDIR)/lib/jooslib.jar: $(SRC)
 
-gen:
-	javac -cp $(PEEPDIR)/jooslib.jar: InGenerate.java
-	java -cp $(PEEPDIR)/jooslib.jar: InGenerate > in1
+run:
+	java -cp $(PEEPDIR)/lib/jooslib.jar: GrueHunt < in1 >& gen1
 
 clean:
 	rm -f *.class *.j *.optdump *.dump
-

@@ -4,12 +4,11 @@ joosc: clean
 joosco: clean
 	$(PEEPDIR)/joosc -O *.java
 
-javac: clean
-	javac -cp $(PEEPDIR)/jooslib.jar: *.java
+javac:
+	javac -cp $(PEEPDIR)/lib/jooslib.jar: *.java
 
 run:
-	java -cp $(PEEPDIR)/jooslib.jar: Game
+	java -cp $(PEEPDIR)/lib/jooslib.jar: Game < in1 >& gen1
 
 clean:
-	rm -rf *.class *.j *.dump *.optdump
-
+	rm -rf *.class *.j *~ *.dump *.optdump
