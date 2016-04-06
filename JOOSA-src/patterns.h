@@ -267,13 +267,17 @@ int replace_double_load_with_dup(CODE **c)
   return 0;
 }
 
-/* Delete nops because they do nothing */
-int rm_nops(CODE **c)
-{
-  if (is_nop(*c))
-  {
-    return(kill_line(c));
+/*
+ * ireturn
+ * nop
+ * -------->
+ * ireturn
+ */
+int strip_nops_after_ireturn(CODE **c)
+{ if (is_ireturn(*c) && is_nop(next(*c))) {
+    return replace(c, 2, makeCODEireturn(next(next(*c))));
   }
+
   return 0;
 }
 
@@ -482,9 +486,7 @@ OPTI optimization[OPTS] = {
   rm_same_iload_istore,
   rm_same_aload_astore,
   rm_redundant_loads,
-  /*
-  rm_nops,
-  */
+  strip_nops_after_ireturn,
   simplify_dup_cmpeq,
   simplify_istore,
   simplify_astore,
@@ -495,14 +497,11 @@ OPTI optimization[OPTS] = {
   simplify_goto_goto
   };
 
+
 /*
+ * TODO: Figure out why this method of adding patterns doesn't work.
 int init_patterns()
 { 
-  rm_nops,
-  
-
-
-
   ADD_PATTERN(simplify_multiplication_right);
   ADD_PATTERN(simplify_astore);
   ADD_PATTERN(positive_increment);
