@@ -10,6 +10,82 @@
  * email: hendren@cs.mcgill.ca, mis@brics.dk
  */
 
+/* Patterns */
+
+int load_load_swap(CODE **c)
+{
+  int first, second;
+  if (is_iload(*c, &first))
+  {
+    if (is_iload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3, makeCODEiload(second, makeCODEiload(first, NULL)));
+      }
+    }
+    else if(is_aload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3,makeCODEaload(second, makeCODEiload(first, NULL)));
+      }
+    }
+  }
+  else if (is_aload(*c, &first))
+  {
+    if (is_iload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3, makeCODEiload(second, makeCODEaload(first, NULL)));
+      }
+    }
+    else if(is_aload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3,makeCODEaload(second, makeCODEaload(first, NULL)));
+      }
+    }
+  }
+  if (is_iload(*c, &first))
+  {
+    if (is_iload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3, makeCODEiload(second, makeCODEiload(first, NULL)));
+      }
+    }
+    else if(is_aload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3,makeCODEaload(second, makeCODEiload(first, NULL)));
+      }
+    }
+  }
+  else if (is_aload(*c, &first))
+  {
+    if (is_iload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3, makeCODEiload(second, makeCODEaload(first, NULL)));
+      }
+    }
+    else if(is_aload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3,makeCODEaload(second, makeCODEaload(first, NULL)));
+      }
+    }
+  }
+  return 0;
+}
+
 int aconst_null_dup_ifeq(CODE **c)
 {
   int y;
@@ -391,9 +467,10 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 18
+#define OPTS 19
 
 OPTI optimization[OPTS] = {
+  load_load_swap,
   aconst_null_dup_ifeq,
   /*simplify_dup_cmpeq,*/
   simplify_addition_left,
