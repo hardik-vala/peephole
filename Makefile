@@ -1,7 +1,8 @@
 # Peephole Benchmarks directory.
 PEEPBENCHDIR ?= $(PEEPDIR)/PeepholeBenchmarks
 
-# JOOS compile the Benchmarks with optimizations, and then make sure the Benchmark tests pass.
+# JOOS compile the Benchmarks with optimizations, and then make sure the
+# Benchmark tests pass.
 joosco: build
 	$(PEEPDIR)/scripts/total_code_length_bench.sh -O
 	@$(MAKE) test >& test.log
@@ -24,4 +25,5 @@ test:
 	$(PEEPDIR)/scripts/compile_run_bench1.sh
 	$(PEEPDIR)/scripts/compile_run_bench2.sh
 	$(PEEPDIR)/scripts/compile_run_bench3.sh
+	$(PEEPDIR)/scripts/compile_run_bench4.sh
 	cd $(PEEPBENCHDIR) && java -cp $(PEEPDIR)/lib/hamcrest-core-1.3.jar:$(PEEPDIR)/lib/junit-4.12.jar: org.junit.runner.JUnitCore test.BenchmarkTestSuite

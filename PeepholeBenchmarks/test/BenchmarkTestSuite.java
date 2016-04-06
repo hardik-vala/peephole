@@ -8,7 +8,8 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
 	Benchmark1Test.class,
 	Benchmark2Test.class,
-	Benchmark3Test.class
+	Benchmark3Test.class,
+	Benchmark4Test.class
 })
 
 public class BenchmarkTestSuite {
