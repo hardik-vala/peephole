@@ -425,11 +425,6 @@ OPTI optimization[OPTS] = {
  * TODO: Figure out why this method of adding patterns doesn't work.
 int init_patterns()
 { 
-  rm_nops,
-  
-
-
-
   ADD_PATTERN(simplify_multiplication_right);
   ADD_PATTERN(simplify_astore);
   ADD_PATTERN(positive_increment);
