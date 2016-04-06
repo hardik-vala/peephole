@@ -268,6 +268,42 @@ int simplify_astore(CODE **c)
   return 0;
 }
 
+/* istore x
+ * iload x
+ * ------->
+ * dup
+ * istore x
+ */
+
+int simplify_istore_iload(CODE **c) {
+    int x, y;
+    if (is_istore(*c, &x) && is_iload(next(*c), &y)) {
+        if (x == y) {
+            return replace(c, 2, makeCODEdup(makeCODEistore(x, NULL)));
+        }
+        return 0;
+    }
+    return 0;
+}
+
+/* astore x
+ * aload x
+ * ------->
+ * dup
+ * astore x
+ */
+
+int simplify_astore_aload(CODE **c) {
+    int x, y;
+    if (is_astore(*c, &x) && is_aload(next(*c), &y)) {
+        if (x == y) {
+            return replace(c, 2, makeCODEdup(makeCODEastore(x, NULL)));
+        }
+        return 0;
+    }
+    return 0;
+}
+
 /* dup
  * aload 0
  * swap
@@ -335,7 +371,7 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 15
+#define OPTS 17
 
 OPTI optimization[OPTS] = {
   simplify_addition_left,
@@ -353,6 +389,8 @@ OPTI optimization[OPTS] = {
   simplify_dup_cmpeq,
   simplify_istore,
   simplify_astore,
+  simplify_istore_iload,
+  simplify_astore_aload,
   simplify_putfield,
   positive_increment,
   simplify_goto_goto
