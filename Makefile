@@ -17,7 +17,7 @@ joosc: build
 
 # Build the JOOS source.
 build:
-	$(PEEPDIR)/scripts/build_src.sh
+	cd $(PEEPDIR)/JOOSA-src/ && $(MAKE) -f Makefile clean main
 
 # Test the running of the Benchmarks (Pre-condition: JOOS compilation of
 # Benchmarks).
