@@ -16,11 +16,11 @@ int simplify_dup_cmpeq(CODE **c)
   int x,y;
   if (is_dup(*c))
   {
-    if (is_if_acmpeq(*c,&x))
+    if (is_if_acmpeq(next(*c),&x))
     {
       return replace_modified(c,2, makeCODEgoto(x, NULL));
     }
-    else if (is_if_icmpeq(*c,&y))
+    else if (is_if_icmpeq(next(*c),&y))
     {
       return replace_modified(c,2, makeCODEgoto(y, NULL));
     }
@@ -37,7 +37,14 @@ int simplify_dup_cmpeq(CODE **c)
 int replace_double_load_with_dup(CODE **c)
 {
   int x,y;
-  if ((is_iload(*c, &x) && is_iload(next(*c), &y)) || (is_aload(*c, &x) && is_aload(next(*c), &y)))
+  if (is_iload(*c, &x) && is_iload(next(*c), &y)) {
+    if (x == y)
+    {
+      CODE* n = next(*c);
+      return replace(&n, 1, makeCODEdup(NULL));
+    }
+  }
+  else if (is_aload(*c, &x) && is_aload(next(*c), &y))
   {
     if (x == y)
     {
