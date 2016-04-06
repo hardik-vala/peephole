@@ -91,6 +91,48 @@ int simplify_multiplication_left(CODE **c) {
     return 0;
 }
 
+/* iload x        iload x        iload x
+ * ldc 0          ldc 1          ldc 2
+ * imul           imul           imul
+ * ------>        ------>        ------>
+ * ldc 0          iload x        iload x
+ *                               dup
+ *                               iadd
+ */
+
+int simplify_multiplication_right(CODE **c)
+{ int x,k;
+  if (is_iload(*c,&x) &&
+      is_ldc_int(next(*c),&k) &&
+      is_imul(next(next(*c)))) {
+     if (k==0) return replace(c,3,makeCODEldc_int(0,NULL));
+     else if (k==1) return replace(c,3,makeCODEiload(x,NULL));
+     else if (k==2) return replace(c,3,makeCODEiload(x,
+                                       makeCODEdup(
+                                       makeCODEiadd(NULL))));
+     return 0;
+  }
+  return 0;
+}
+
+/* iload x
+ * ldc 1
+ * idiv
+ * ------>
+ * iload x
+ */
+
+int simplify_division_right(CODE **c) {
+    int x, k;
+    if (is_iload(*c, &x) && is_ldc_int(next(*c), &k) && is_idiv(next(next(*c)))) {
+        if (k == 1) {
+            return replace(c, 3, makeCODEiload(x, NULL));
+        }
+        return 0;
+    }
+    return 0;
+}
+
 /* Handle dup'ing and then compare equals branching */
 int simplify_dup_cmpeq(CODE **c)
 {
@@ -135,22 +177,6 @@ int rm_nops(CODE **c)
   if (is_nop(*c))
   {
     return(kill_line(c));
-  }
-  return 0;
-}
-
-/* dup
- * istore
- * pop
- * ----->
- * istore x
- */
-int simplify_istore(CODE **c)
-{
-  int x;
-  if (is_dup(*c) && is_istore(next(*c), &x) && is_pop(next(next(*c))))
-  {
-    return replace(c,3,makeCODEistore(x,NULL));
   }
   return 0;
 }
@@ -209,31 +235,22 @@ int rm_redundant_loads(CODE **c)
   return 0;
  }
 
-/* iload x        iload x        iload x
- * ldc 0          ldc 1          ldc 2
- * imul           imul           imul
- * ------>        ------>        ------>
- * ldc 0          iload x        iload x
- *                               dup
- *                               iadd
- */
+ /* dup
+  * istore
+  * pop
+  * ----->
+  * istore x
+  */
 
-int simplify_multiplication_right(CODE **c)
-{ int x,k;
-  if (is_iload(*c,&x) &&
-      is_ldc_int(next(*c),&k) &&
-      is_imul(next(next(*c)))) {
-     if (k==0) return replace(c,3,makeCODEldc_int(0,NULL));
-     else if (k==1) return replace(c,3,makeCODEiload(x,NULL));
-     else if (k==2) return replace(c,3,makeCODEiload(x,
-                                       makeCODEdup(
-                                       makeCODEiadd(NULL))));
-     return 0;
-  }
-  return 0;
-}
-
-
+ int simplify_istore(CODE **c)
+ {
+   int x;
+   if (is_dup(*c) && is_istore(next(*c), &x) && is_pop(next(next(*c))))
+   {
+     return replace(c,3,makeCODEistore(x,NULL));
+   }
+   return 0;
+ }
 
 /* dup
  * astore x
@@ -294,20 +311,21 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 14
+#define OPTS 9
 
 OPTI optimization[OPTS] = {
-  simplify_dup_cmpeq,
-  rm_same_aload_astore,
-  rm_redundant_loads,
-  rm_same_iload_istore,
-  simplify_istore,
-  rm_nops,
   simplify_addition_left,
   simplify_addition_right,
   simpify_subtraction_right,
   simplify_multiplication_left,
   simplify_multiplication_right,
+  simplify_division_right,
+  rm_same_iload_istore,
+  rm_same_aload_astore,
+  rm_redundant_loads,
+  rm_nops,
+  simplify_dup_cmpeq,
+  simplify_istore,
   simplify_astore,
   positive_increment,
   simplify_goto_goto};
