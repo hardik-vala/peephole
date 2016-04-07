@@ -632,8 +632,22 @@ int strip_after_return(CODE **c)
   return 0;
 }
 
+/*
+ * L: (Dead)
+ * --------->
+ *
+ */
+int drop_dead_label(CODE **c)
+{ int l;
+  if (is_label(*c, &l) && deadlabel(l)) {
+    return replace(c, 1, NULL);
+  }
+
+  return 0;
+}
+
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 25
+#define OPTS 26
 
 OPTI optimization[OPTS] = {
   load_load_swap,
@@ -660,7 +674,8 @@ OPTI optimization[OPTS] = {
   simplify_invokenonvirtual,
   positive_increment,
   simplify_goto_goto,
-  strip_after_return
+  strip_after_return,
+  drop_dead_label
   };
 
 
