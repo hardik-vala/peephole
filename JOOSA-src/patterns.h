@@ -31,6 +31,32 @@ int drop_dead_label(CODE **c)
   return 0;
 }
 
+/* 
+ * ifeq L1
+ * iconst_0
+ * goto L2
+ * L1:
+ * iconst_1
+ * L2:
+ * ifeq L3
+ * --------->
+ * ifneq L3   (L1 & L2 must be unique)
+ */
+int simplify_consec_ifeqs(CODE **c)
+{ int l1, l2, l3, l4, l5, x1, x2;
+  if (is_ifeq(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_ifeq(nextby(*c, 6), &l5)) {
+    return replace(c, 7, makeCODEifne(l5, NULL));
+  }
+
+  return 0;
+}
+
 /*
  * {ldc 0, iconst_0}
  * if_icmpeq L
@@ -61,22 +87,40 @@ int strip_after_return(CODE **c)
   /* return. */
   if (is_return(*c) &&
       !is_label(next(*c), &l1) &&
-      is_label(next(next(*c)), &l2)) {
+      is_label(nextby(*c, 2), &l2)) {
     return replace_modified(c, 3, makeCODEreturn(makeCODElabel(l2, NULL)));
   }
 
   /* areturn. */
   if (is_areturn(*c) &&
       !is_label(next(*c), &l1) &&
-      is_label(next(next(*c)), &l2)) {
+      is_label(nextby(*c, 2), &l2)) {
     return replace_modified(c, 3, makeCODEareturn(makeCODElabel(l2, NULL)));
   }
 
   /* ireturn. */
   if (is_ireturn(*c) &&
       !is_label(next(*c), &l1) &&
-      is_label(next(next(*c)), &l2)) {
+      is_label(nextby(*c, 2), &l2)) {
     return replace_modified(c, 3, makeCODEireturn(makeCODElabel(l2, NULL)));
+  }
+
+  return 0;
+}
+
+/*
+ * {return, ireturn}
+ * nop
+ * -------->
+ * {return, ireturn}  (Not areturn)
+ */
+int strip_nops_after_return(CODE **c)
+{ if (is_return(*c) && is_nop(next(*c))) {
+    return replace(c, 2, makeCODEreturn(NULL));
+  }
+
+  if (is_ireturn(*c) && is_nop(next(*c))) {
+    return replace(c, 2, makeCODEireturn(NULL));
   }
 
   return 0;
@@ -337,20 +381,6 @@ int replace_double_load_with_dup(CODE **c)
       return replace(&n, 1, makeCODEdup(NULL));
     }
   }
-  return 0;
-}
-
-/*
- * ireturn
- * nop
- * -------->
- * ireturn
- */
-int strip_nops_after_ireturn(CODE **c)
-{ if (is_ireturn(*c) && is_nop(next(*c))) {
-    return replace(c, 2, makeCODEireturn(next(next(*c))));
-  }
-
   return 0;
 }
 
@@ -652,17 +682,18 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 26
+#define OPTS 27
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
   drop_dead_label,
+  simplify_consec_ifeqs,
   simplify_icmpeq_zero,
   strip_after_return,
   load_load_swap,
   aconst_null_dup_ifeq,
   simplify_dup_cmpeq,
-  strip_nops_after_ireturn,
+  strip_nops_after_return,
   ldc_dup_ifnull,
   simplify_addition_left,
   simplify_addition_right,
