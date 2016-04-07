@@ -24,3 +24,6 @@ JOOSA-src/joos
 
 # Outputs of runnng Benchmarks.
 gen1
+
+# Temporary file for storing last opt. total code length.
+scripts/.last_total_opt_code_length
