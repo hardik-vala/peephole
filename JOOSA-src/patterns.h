@@ -16,6 +16,7 @@
  * Group 05: Ethan Macdonald, Teng Long, Hardik Vala *
  *****************************************************/
 
+
 int ldc_dup_ifnull(CODE **c)
 {
   int x, y;
@@ -127,6 +128,21 @@ int aconst_null_dup_ifeq(CODE **c)
       return replace(c, 3, makeCODEgoto(y, NULL));
     }
   }
+  return 0;
+}
+
+/*
+ * {ldc 0, iconst_0}
+ * if_icmpeq L
+ * --------->
+ * ifeq L
+ */
+int simplify_icmpeq_zero(CODE **c)
+{ int k, l;
+  if (is_ldc_int(*c, &k) && k == 0 && is_if_icmpeq(next(*c), &l)) {
+    return replace(c, 2, makeCODEifeq(l, NULL));
+  }
+
   return 0;
 }
 
@@ -584,6 +600,7 @@ int simplify_goto_goto(CODE **c)
 OPTI optimization[OPTS] = {
   load_load_swap,
   aconst_null_dup_ifeq,
+  simplify_icmpeq_zero,
   simplify_dup_cmpeq,
   strip_nops_after_ireturn,
   ldc_dup_ifnull,
