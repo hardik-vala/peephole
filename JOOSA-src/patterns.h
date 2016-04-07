@@ -595,25 +595,24 @@ int simplify_goto_goto(CODE **c)
 }
 
 /*
- * ireturn
- * goto L1
+ * {return, areturn, ireturn}
+ * ...
  * L2:
  * --------->
- * ireturn
+ * {return, areturn, ireturn}
  * L2:
  */
 /* TODO: Generalize this pattern to handle any number of intervening
  * statements. */
 /* TODO: For intervening GOTO's, check if the destination label is unique, in
  * which case drop it. */
-/* TODO: Copy this rule for areturn and return. */
 int strip_after_return(CODE **c)
 { int l1, l2;
-  /* ireturn. */
-  if (is_ireturn(*c) &&
+  /* return. */
+  if (is_return(*c) &&
       !is_label(next(*c), &l1) &&
       is_label(next(next(*c)), &l2)) {
-    return replace_modified(c, 3, makeCODEireturn(makeCODElabel(l2, NULL)));
+    return replace_modified(c, 3, makeCODEreturn(makeCODElabel(l2, NULL)));
   }
 
   /* areturn. */
@@ -623,11 +622,11 @@ int strip_after_return(CODE **c)
     return replace_modified(c, 3, makeCODEareturn(makeCODElabel(l2, NULL)));
   }
 
-  /* return. */
-  if (is_return(*c) &&
+  /* ireturn. */
+  if (is_ireturn(*c) &&
       !is_label(next(*c), &l1) &&
       is_label(next(next(*c)), &l2)) {
-    return replace_modified(c, 3, makeCODEreturn(makeCODElabel(l2, NULL)));
+    return replace_modified(c, 3, makeCODEireturn(makeCODElabel(l2, NULL)));
   }
 
   return 0;
