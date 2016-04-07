@@ -32,6 +32,21 @@ int drop_dead_label(CODE **c)
 }
 
 /*
+ * {ldc 0, iconst_0}
+ * if_icmpeq L
+ * --------->
+ * ifeq L
+ */
+int simplify_icmpeq_zero(CODE **c)
+{ int k, l;
+  if (is_ldc_int(*c, &k) && k == 0 && is_if_icmpeq(next(*c), &l)) {
+    return replace(c, 2, makeCODEifeq(l, NULL));
+  }
+
+  return 0;
+}
+
+/*
  * {return, areturn, ireturn}
  * ...
  * L2:
@@ -182,21 +197,6 @@ int aconst_null_dup_ifeq(CODE **c)
 }
 
 /*
- * {ldc 0, iconst_0}
- * if_icmpeq L
- * --------->
- * ifeq L
- */
-int simplify_icmpeq_zero(CODE **c)
-{ int k, l;
-  if (is_ldc_int(*c, &k) && k == 0 && is_if_icmpeq(next(*c), &l)) {
-    return replace(c, 2, makeCODEifeq(l, NULL));
-  }
-
-  return 0;
-}
-
-/*
  * ldc 0
  * iload x
  * iadd
@@ -275,30 +275,6 @@ int simplify_multiplication_left(CODE **c) {
         return 0;
     }
     return 0;
-}
-
-/* iload x        iload x        iload x
- * ldc 0          ldc 1          ldc 2
- * imul           imul           imul
- * ------>        ------>        ------>
- * ldc 0          iload x        iload x
- *                               dup
- *                               iadd
- */
-
-int simplify_multiplication_right(CODE **c)
-{ int x,k;
-  if (is_iload(*c,&x) &&
-      is_ldc_int(next(*c),&k) &&
-      is_imul(next(next(*c)))) {
-     if (k==0) return replace(c,3,makeCODEldc_int(0,NULL));
-     else if (k==1) return replace(c,3,makeCODEiload(x,NULL));
-     else if (k==2) return replace(c,3,makeCODEiload(x,
-                                       makeCODEdup(
-                                       makeCODEiadd(NULL))));
-     return 0;
-  }
-  return 0;
 }
 
 /* iload x
@@ -449,22 +425,6 @@ int rm_redundant_loads(CODE **c)
    return 0;
  }
 
-/* dup
- * astore x
- * pop
- * -------->
- * astore x
- */
-int simplify_astore(CODE **c)
-{ int x;
-  if (is_dup(*c) &&
-      is_astore(next(*c),&x) &&
-      is_pop(next(next(*c)))) {
-     return replace(c,3,makeCODEastore(x,NULL));
-  }
-  return 0;
-}
-
 /* istore x
  * iload x
  * ------->
@@ -601,6 +561,12 @@ int simplify_invokenonvirtual(CODE **c)
   return 0;
 }
 
+
+/*********************
+ * LAURIE'S PATTERNS *
+ **********************/
+
+
 /* iload x
  * ldc k   (0<=k<=127)
  * iadd
@@ -616,6 +582,22 @@ int positive_increment(CODE **c)
       is_istore(next(next(next(*c))),&y) &&
       x==y && 0<=k && k<=127) {
      return replace(c,4,makeCODEiinc(x,k,NULL));
+  }
+  return 0;
+}
+
+/* dup
+ * astore x
+ * pop
+ * -------->
+ * astore x
+ */
+int simplify_astore(CODE **c)
+{ int x;
+  if (is_dup(*c) &&
+      is_astore(next(*c),&x) &&
+      is_pop(next(next(*c)))) {
+     return replace(c,3,makeCODEastore(x,NULL));
   }
   return 0;
 }
@@ -644,15 +626,41 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
+/* iload x        iload x        iload x
+ * ldc 0          ldc 1          ldc 2
+ * imul           imul           imul
+ * ------>        ------>        ------>
+ * ldc 0          iload x        iload x
+ *                               dup
+ *                               iadd
+ */
+
+int simplify_multiplication_right(CODE **c)
+{ int x,k;
+  if (is_iload(*c,&x) &&
+      is_ldc_int(next(*c),&k) &&
+      is_imul(next(next(*c)))) {
+     if (k==0) return replace(c,3,makeCODEldc_int(0,NULL));
+     else if (k==1) return replace(c,3,makeCODEiload(x,NULL));
+     else if (k==2) return replace(c,3,makeCODEiload(x,
+                                       makeCODEdup(
+                                       makeCODEiadd(NULL))));
+     return 0;
+  }
+  return 0;
+}
+
+
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
 #define OPTS 26
 
 OPTI optimization[OPTS] = {
+  /* Our patterns. */
   drop_dead_label,
+  simplify_icmpeq_zero,
   strip_after_return,
   load_load_swap,
   aconst_null_dup_ifeq,
-  simplify_icmpeq_zero,
   simplify_dup_cmpeq,
   strip_nops_after_ireturn,
   ldc_dup_ifnull,
@@ -660,22 +668,22 @@ OPTI optimization[OPTS] = {
   simplify_addition_right,
   simpify_subtraction_right,
   simplify_multiplication_left,
-  simplify_multiplication_right,
   simplify_division_right,
   rm_same_iload_istore,
   rm_same_aload_astore,
   rm_redundant_loads,
   simplify_dup_cmpeq,
   simplify_istore,
-  simplify_astore,
   simplify_istore_iload,
   simplify_astore_aload,
   simplify_putfield,
   simplify_invokenonvirtual,
+  /* Laurie's patterns. */
   positive_increment,
-  simplify_goto_goto
-  };
-
+  simplify_astore,
+  simplify_goto_goto,
+  simplify_multiplication_right
+};
 
 /*
  * TODO: Figure out why this method of adding patterns doesn't work.
