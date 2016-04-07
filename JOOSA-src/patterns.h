@@ -10,6 +10,95 @@
  * email: hendren@cs.mcgill.ca, mis@brics.dk
  */
 
+/* Patterns */
+
+int load_load_swap(CODE **c)
+{
+  int first, second;
+  if (is_iload(*c, &first))
+  {
+    if (is_iload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3, makeCODEiload(second, makeCODEiload(first, NULL)));
+      }
+    }
+    else if(is_aload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3,makeCODEaload(second, makeCODEiload(first, NULL)));
+      }
+    }
+  }
+  else if (is_aload(*c, &first))
+  {
+    if (is_iload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3, makeCODEiload(second, makeCODEaload(first, NULL)));
+      }
+    }
+    else if(is_aload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3,makeCODEaload(second, makeCODEaload(first, NULL)));
+      }
+    }
+  }
+  if (is_iload(*c, &first))
+  {
+    if (is_iload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3, makeCODEiload(second, makeCODEiload(first, NULL)));
+      }
+    }
+    else if(is_aload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3,makeCODEaload(second, makeCODEiload(first, NULL)));
+      }
+    }
+  }
+  else if (is_aload(*c, &first))
+  {
+    if (is_iload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3, makeCODEiload(second, makeCODEaload(first, NULL)));
+      }
+    }
+    else if(is_aload(next(*c), &second))
+    {
+      if (is_swap(next(next(*c))))
+      {
+        return replace(c,3,makeCODEaload(second, makeCODEaload(first, NULL)));
+      }
+    }
+  }
+  return 0;
+}
+
+int aconst_null_dup_ifeq(CODE **c)
+{
+  int y;
+  if (is_aconst_null(*c))
+  {
+    if (is_dup(next(*c)) && (is_if_acmpeq(next(next(*c)), &y) || is_if_icmpeq(next(next(*c)), &y)))
+    {
+      return replace(c, 3, makeCODEgoto(y, NULL));
+    }
+  }
+  return 0;
+}
+
 /*
  * ldc 0
  * iload x
@@ -139,11 +228,11 @@ int simplify_dup_cmpeq(CODE **c)
   int x,y;
   if (is_dup(*c))
   {
-    if (is_if_acmpeq(*c,&x))
+    if (is_if_acmpeq(next(*c),&x))
     {
       return replace_modified(c,2, makeCODEgoto(x, NULL));
     }
-    else if (is_if_icmpeq(*c,&y))
+    else if (is_if_icmpeq(next(*c),&y))
     {
       return replace_modified(c,2, makeCODEgoto(y, NULL));
     }
@@ -160,7 +249,14 @@ int simplify_dup_cmpeq(CODE **c)
 int replace_double_load_with_dup(CODE **c)
 {
   int x,y;
-  if ((is_iload(*c, &x) && is_iload(next(*c), &y)) || (is_aload(*c, &x) && is_aload(next(*c), &y)))
+  if (is_iload(*c, &x) && is_iload(next(*c), &y)) {
+    if (x == y)
+    {
+      CODE* n = next(*c);
+      return replace(&n, 1, makeCODEdup(NULL));
+    }
+  }
+  else if (is_aload(*c, &x) && is_aload(next(*c), &y))
   {
     if (x == y)
     {
@@ -171,13 +267,17 @@ int replace_double_load_with_dup(CODE **c)
   return 0;
 }
 
-/* Delete nops because they do nothing */
-int rm_nops(CODE **c)
-{
-  if (is_nop(*c))
-  {
-    return(kill_line(c));
+/*
+ * ireturn
+ * nop
+ * -------->
+ * ireturn
+ */
+int strip_nops_after_ireturn(CODE **c)
+{ if (is_ireturn(*c) && is_nop(next(*c))) {
+    return replace(c, 2, makeCODEireturn(next(next(*c))));
   }
+
   return 0;
 }
 
@@ -409,9 +509,12 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 17
+#define OPTS 19
 
 OPTI optimization[OPTS] = {
+  load_load_swap,
+  aconst_null_dup_ifeq,
+  /*simplify_dup_cmpeq,*/
   simplify_addition_left,
   simplify_addition_right,
   simpify_subtraction_right,
@@ -421,6 +524,7 @@ OPTI optimization[OPTS] = {
   rm_same_iload_istore,
   rm_same_aload_astore,
   rm_redundant_loads,
+  strip_nops_after_ireturn,
   simplify_dup_cmpeq,
   simplify_istore,
   simplify_astore,
@@ -429,11 +533,14 @@ OPTI optimization[OPTS] = {
   simplify_putfield,
   positive_increment,
   simplify_goto_goto
-};
+  };
+
 
 /*
+ * TODO: Figure out why this method of adding patterns doesn't work.
 int init_patterns()
-{ ADD_PATTERN(simplify_multiplication_right);
+{
+  ADD_PATTERN(simplify_multiplication_right);
   ADD_PATTERN(simplify_astore);
   ADD_PATTERN(positive_increment);
   ADD_PATTERN(simplify_goto_goto);
