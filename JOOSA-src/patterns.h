@@ -12,6 +12,33 @@
 
 /* Patterns */
 
+int ldc_dup_ifnull(CODE **c)
+{
+  int x, y;
+  char* s;
+  if (is_ldc_int(*c, &x))
+  {
+    if (is_dup(next(*c)))
+    {
+      if (is_ifnull(next(next(*c)), &y))
+      {
+        return replace(c,3,makeCODEldc_int(x, NULL));
+      }
+    }
+  }
+  else if (is_ldc_string(*c, &s))
+  {
+    if (is_dup(next(*c)))
+    {
+      if (is_ifnull(next(next(*c)), &y))
+      {
+        return replace(c,3,makeCODEldc_string(s, NULL));
+      }
+    }
+  }
+  return 0;
+}
+
 int load_load_swap(CODE **c)
 {
   int first, second;
@@ -471,12 +498,14 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 19
+#define OPTS 21
 
 OPTI optimization[OPTS] = {
   load_load_swap,
   aconst_null_dup_ifeq,
-  /*simplify_dup_cmpeq,*/
+  simplify_dup_cmpeq,
+  strip_nops_after_ireturn,
+  ldc_dup_ifnull,
   simplify_addition_left,
   simplify_addition_right,
   simpify_subtraction_right,
@@ -486,7 +515,6 @@ OPTI optimization[OPTS] = {
   rm_same_iload_istore,
   rm_same_aload_astore,
   rm_redundant_loads,
-  strip_nops_after_ireturn,
   simplify_dup_cmpeq,
   simplify_istore,
   simplify_astore,
