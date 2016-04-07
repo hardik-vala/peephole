@@ -607,6 +607,7 @@ int simplify_goto_goto(CODE **c)
  * statements. */
 /* TODO: For intervening GOTO's, check if the destination label is unique, in
  * which case drop it. */
+/* TODO: Copy this rule for areturn and return. */
 int strip_after_return(CODE **c)
 { int l1, l2;
   if (is_ireturn(*c) &&
