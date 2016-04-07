@@ -431,6 +431,44 @@ int simplify_astore_aload(CODE **c) {
     return 0;
 }
 
+/* aload 0
+ * .......
+ * .......
+ * .......
+ * aload 0
+ * .......
+ * .......
+ * .......
+ * ------>
+ * aload 0
+ * dup
+ * TODO: doesn't work
+ */
+
+int simplify_two_aload_0(CODE **c) {
+    int x, y;
+    char *arg_1, *arg_2, *arg_3, *arg_4, *arg_5, *arg_6;
+    if (is_aload(*c, &x) && is_getfield(next(*c), &arg_1) &&
+        is_ldc_string(next(next(*c)), &arg_2) && is_invokevirtual(next(next(next(*c))), &arg_3) &&
+        is_aload(next(next(next(next(*c)))), &y) && is_getfield(next(next(next(next(next(*c))))), &arg_4) &&
+        is_ldc_string(next(next(next(next(next(next(*c)))))), &arg_5) && is_invokevirtual(next(next(next(next(next(next(next(*c))))))), &arg_6)) {
+        if (x == 0 && y == 0) {
+            return replace(c, 8, makeCODEaload(x,
+                                    makeCODEdup(
+                                        makeCODEgetfield(arg_1,
+                                        makeCODEldc_string(arg_2,
+                                        makeCODEinvokevirtual(arg_3,
+                                        makeCODEgetfield(arg_4,
+                                        makeCODEldc_string(arg_5,
+                                        makeCODEinvokevirtual(arg_6,
+                                        NULL))))))
+                                    )));
+        }
+        return 0;
+    }
+    return 0;
+}
+
 /* dup
  * aload 0
  * swap
@@ -453,6 +491,44 @@ int simplify_putfield(CODE **c) {
         return 0;
     }
     return 0;
+}
+
+/*
+ * new ...
+ * dup
+ * invokenonvirtual ...
+ * aload_0
+ * swap
+ * --------->
+ * aload_0
+ * new ...
+ * dup
+ * invokenonvirtual ...
+ */
+/* TODO: Should we check the method corresponding to the invokenonvirtual
+ * accepts no arguments? */
+int simplify_invokenonvirtual(CODE **c)
+{ int x;
+  char *arg1, *arg2;
+  if (is_new(*c, &arg1) && is_dup(next(*c)) &&
+      is_invokenonvirtual(next(next(*c)), &arg2) &&
+      is_aload(next(next(next(*c))), &x) &&
+      is_swap(next(next(next(next(*c)))))) {
+      /* TODO: Is this check needed? */
+      if (x == 0) {
+        return replace(c, 5,
+          makeCODEaload(x,
+            makeCODEnew(arg1,
+              makeCODEdup(
+                makeCODEinvokenonvirtual(arg2, NULL)
+              )
+            )
+          )
+        );
+      }
+  }
+
+  return 0;
 }
 
 /* iload x
@@ -521,6 +597,7 @@ OPTI optimization[OPTS] = {
   simplify_istore_iload,
   simplify_astore_aload,
   simplify_putfield,
+  simplify_invokenonvirtual,
   positive_increment,
   simplify_goto_goto
   };
@@ -529,7 +606,7 @@ OPTI optimization[OPTS] = {
 /*
  * TODO: Figure out why this method of adding patterns doesn't work.
 int init_patterns()
-{ 
+{
   ADD_PATTERN(simplify_multiplication_right);
   ADD_PATTERN(simplify_astore);
   ADD_PATTERN(positive_increment);
