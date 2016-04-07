@@ -10,7 +10,11 @@
  * email: hendren@cs.mcgill.ca, mis@brics.dk
  */
 
-/* Patterns */
+/*****************************************************
+ * Patterns                                          *
+ *                                                   *
+ * Group 05: Ethan Macdonald, Teng Long, Hardik Vala *
+ *****************************************************/
 
 int ldc_dup_ifnull(CODE **c)
 {
