@@ -304,6 +304,44 @@ int simplify_astore_aload(CODE **c) {
     return 0;
 }
 
+/* aload 0
+ * .......
+ * .......
+ * .......
+ * aload 0
+ * .......
+ * .......
+ * .......
+ * ------>
+ * aload 0
+ * dup
+ * TODO: doesn't work
+ */
+
+int simplify_two_aload_0(CODE **c) {
+    int x, y;
+    char *arg_1, *arg_2, *arg_3, *arg_4, *arg_5, *arg_6;
+    if (is_aload(*c, &x) && is_getfield(next(*c), &arg_1) &&
+        is_ldc_string(next(next(*c)), &arg_2) && is_invokevirtual(next(next(next(*c))), &arg_3) &&
+        is_aload(next(next(next(next(*c)))), &y) && is_getfield(next(next(next(next(next(*c))))), &arg_4) &&
+        is_ldc_string(next(next(next(next(next(next(*c)))))), &arg_5) && is_invokevirtual(next(next(next(next(next(next(next(*c))))))), &arg_6)) {
+        if (x == 0 && y == 0) {
+            return replace(c, 8, makeCODEaload(x,
+                                    makeCODEdup(
+                                        makeCODEgetfield(arg_1,
+                                        makeCODEldc_string(arg_2,
+                                        makeCODEinvokevirtual(arg_3,
+                                        makeCODEgetfield(arg_4,
+                                        makeCODEldc_string(arg_5,
+                                        makeCODEinvokevirtual(arg_6,
+                                        NULL))))))
+                                    )));
+        }
+        return 0;
+    }
+    return 0;
+}
+
 /* dup
  * aload 0
  * swap
@@ -383,9 +421,6 @@ OPTI optimization[OPTS] = {
   rm_same_iload_istore,
   rm_same_aload_astore,
   rm_redundant_loads,
-  /*
-  rm_nops,
-  */
   simplify_dup_cmpeq,
   simplify_istore,
   simplify_astore,
