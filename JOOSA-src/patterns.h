@@ -594,8 +594,32 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
+/*
+ * ireturn
+ * goto L1
+ * L2:
+ * --------->
+ * ireturn
+ * L2:
+ */
+/* TODO: Generalize this pattern to handle any intervening statement. */
+/* TODO: Generalize this pattern to handle any number of intervening
+ * statements. */
+/* TODO: For intervening GOTO's, check if the destination label is unique, in
+ * which case drop it. */
+int strip_after_return(CODE **c)
+{ int l1, l2;
+  if (is_ireturn(*c) &&
+      is_goto(next(*c), &l1) &&
+      is_label(next(next(*c)), &l2)) {
+    return replace_modified(c, 3, makeCODEireturn(makeCODElabel(l2, NULL)));
+  }
+
+  return 0;
+}
+
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 23
+#define OPTS 25
 
 OPTI optimization[OPTS] = {
   load_load_swap,
@@ -621,7 +645,8 @@ OPTI optimization[OPTS] = {
   simplify_putfield,
   simplify_invokenonvirtual,
   positive_increment,
-  simplify_goto_goto
+  simplify_goto_goto,
+  strip_after_return
   };
 
 
