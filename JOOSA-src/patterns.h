@@ -574,7 +574,8 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-#define OPTS 21
+/* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
+#define OPTS 23
 
 OPTI optimization[OPTS] = {
   load_load_swap,
