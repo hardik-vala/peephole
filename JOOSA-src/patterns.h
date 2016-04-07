@@ -17,6 +17,56 @@
  *****************************************************/
 
 
+/*
+ * L: (Dead)
+ * --------->
+ *
+ */
+int drop_dead_label(CODE **c)
+{ int l;
+  if (is_label(*c, &l) && deadlabel(l)) {
+    return replace(c, 1, NULL);
+  }
+
+  return 0;
+}
+
+/*
+ * {return, areturn, ireturn}
+ * ...
+ * L2:
+ * --------->
+ * {return, areturn, ireturn}
+ * L2:
+ */
+/* TODO: Generalize this pattern to handle any number of intervening
+ * statements. */
+int strip_after_return(CODE **c)
+{ int l1, l2;
+  /* return. */
+  if (is_return(*c) &&
+      !is_label(next(*c), &l1) &&
+      is_label(next(next(*c)), &l2)) {
+    return replace_modified(c, 3, makeCODEreturn(makeCODElabel(l2, NULL)));
+  }
+
+  /* areturn. */
+  if (is_areturn(*c) &&
+      !is_label(next(*c), &l1) &&
+      is_label(next(next(*c)), &l2)) {
+    return replace_modified(c, 3, makeCODEareturn(makeCODElabel(l2, NULL)));
+  }
+
+  /* ireturn. */
+  if (is_ireturn(*c) &&
+      !is_label(next(*c), &l1) &&
+      is_label(next(next(*c)), &l2)) {
+    return replace_modified(c, 3, makeCODEireturn(makeCODElabel(l2, NULL)));
+  }
+
+  return 0;
+}
+
 int ldc_dup_ifnull(CODE **c)
 {
   int x, y;
@@ -594,62 +644,12 @@ int simplify_goto_goto(CODE **c)
   return 0;
 }
 
-/*
- * {return, areturn, ireturn}
- * ...
- * L2:
- * --------->
- * {return, areturn, ireturn}
- * L2:
- */
-/* TODO: Generalize this pattern to handle any number of intervening
- * statements. */
-/* TODO: For intervening GOTO's, check if the destination label is unique, in
- * which case drop it. */
-int strip_after_return(CODE **c)
-{ int l1, l2;
-  /* return. */
-  if (is_return(*c) &&
-      !is_label(next(*c), &l1) &&
-      is_label(next(next(*c)), &l2)) {
-    return replace_modified(c, 3, makeCODEreturn(makeCODElabel(l2, NULL)));
-  }
-
-  /* areturn. */
-  if (is_areturn(*c) &&
-      !is_label(next(*c), &l1) &&
-      is_label(next(next(*c)), &l2)) {
-    return replace_modified(c, 3, makeCODEareturn(makeCODElabel(l2, NULL)));
-  }
-
-  /* ireturn. */
-  if (is_ireturn(*c) &&
-      !is_label(next(*c), &l1) &&
-      is_label(next(next(*c)), &l2)) {
-    return replace_modified(c, 3, makeCODEireturn(makeCODElabel(l2, NULL)));
-  }
-
-  return 0;
-}
-
-/*
- * L: (Dead)
- * --------->
- *
- */
-int drop_dead_label(CODE **c)
-{ int l;
-  if (is_label(*c, &l) && deadlabel(l)) {
-    return replace(c, 1, NULL);
-  }
-
-  return 0;
-}
-
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
 #define OPTS 26
 
 OPTI optimization[OPTS] = {
+  drop_dead_label,
+  strip_after_return,
   load_load_swap,
   aconst_null_dup_ifeq,
   simplify_icmpeq_zero,
@@ -673,9 +673,7 @@ OPTI optimization[OPTS] = {
   simplify_putfield,
   simplify_invokenonvirtual,
   positive_increment,
-  simplify_goto_goto,
-  strip_after_return,
-  drop_dead_label
+  simplify_goto_goto
   };
 
 
