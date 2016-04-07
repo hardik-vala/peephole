@@ -57,6 +57,33 @@ int simplify_consec_ifeqs(CODE **c)
   return 0;
 }
 
+/* 
+ * if_icmplt L1
+ * {ldc 0, iconst_0}
+ * goto L2
+ * L1:
+ * {ldc 1, iconst_1}
+ * L2:
+ * ifeq L3
+ * --------->
+ * ifneq L3   (L1 & L2 must be unique)
+ */
+/* TODO: Add this pattern for other if-constructs. */
+int simplify_consec_if_icmplt_and_ifeq(CODE **c)
+{ int l1, l2, l3, l4, l5, x1, x2;
+  if (is_if_icmplt(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_ifeq(nextby(*c, 6), &l5)) {
+    return replace(c, 7, makeCODEif_icmpge(l5, NULL));
+  }
+
+  return 0;
+}
+
 /*
  * {ldc 0, iconst_0}
  * if_icmpeq L
@@ -697,12 +724,13 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 28
+#define OPTS 29
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
   drop_dead_label,
   simplify_consec_ifeqs,
+  simplify_consec_if_icmplt_and_ifeq,
   simplify_icmpeq_zero,
   simplify_icmpne_zero,
   strip_after_return,
