@@ -33,10 +33,10 @@ int drop_dead_label(CODE **c)
 
 /* 
  * ifeq L1
- * iconst_0
+ * {ldc 0, iconst_0}
  * goto L2
  * L1:
- * iconst_1
+ * {ldc 1, iconst_1}
  * L2:
  * ifeq L3
  * --------->
@@ -67,6 +67,21 @@ int simplify_icmpeq_zero(CODE **c)
 { int k, l;
   if (is_ldc_int(*c, &k) && k == 0 && is_if_icmpeq(next(*c), &l)) {
     return replace(c, 2, makeCODEifeq(l, NULL));
+  }
+
+  return 0;
+}
+
+/*
+ * {ldc 0, iconst_0}
+ * if_icmpneq L
+ * --------->
+ * ifneq L
+ */
+int simplify_icmpne_zero(CODE **c)
+{ int k, l;
+  if (is_ldc_int(*c, &k) && k == 0 && is_if_icmpne(next(*c), &l)) {
+    return replace(c, 2, makeCODEifne(l, NULL));
   }
 
   return 0;
@@ -682,13 +697,14 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 27
+#define OPTS 28
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
   drop_dead_label,
   simplify_consec_ifeqs,
   simplify_icmpeq_zero,
+  simplify_icmpne_zero,
   strip_after_return,
   load_load_swap,
   aconst_null_dup_ifeq,
