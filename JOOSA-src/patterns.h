@@ -440,6 +440,8 @@ int simplify_putfield(CODE **c) {
  * dup
  * invokenonvirtual ...
  */
+/* TODO: Should we check the method corresponding to the invokenonvirtual
+ * accepts no arguments? */
 int simplify_invokenonvirtual(CODE **c)
 { int x;
   char *arg1, *arg2;
@@ -447,11 +449,17 @@ int simplify_invokenonvirtual(CODE **c)
       is_invokenonvirtual(next(next(*c)), &arg2) &&
       is_aload(next(next(next(*c))), &x) &&
       is_swap(next(next(next(next(*c)))))) {
+      /* TODO: Is this check needed? */
       if (x == 0) {
         return replace(c, 5,
           makeCODEaload(x,
             makeCODEnew(arg1,
-              makeCODEdup(makeCODEinvokenonvirtual(arg2, NULL)))));
+              makeCODEdup(
+                makeCODEinvokenonvirtual(arg2, NULL)
+              )
+            )
+          )
+        );
       }
   }
 
