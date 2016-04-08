@@ -42,13 +42,54 @@ int drop_dead_label(CODE **c)
  * L1:
  * L2:
  */
-/* TODO: I don't think this one helps at all... */
+/* TODO: Doesn't do anything. Test again. */
 int goto_last_label(CODE **c)
 { int l1, l2;
   if (is_goto(*c, &l1) && is_label(next(destination(l1)), &l2)) {
     droplabel(l1);
     copylabel(l2);
     return replace(c, 1, makeCODEgoto(l2, NULL));
+  }
+
+  return 0;
+}
+
+/* 
+ * astore k
+ * aload k
+ * --------->
+ * dup
+ * astore k
+ */
+int simplify_astore_aload(CODE **c)
+{ int k1, k2;
+  if (is_astore(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
+    return replace(c, 2, makeCODEdup(makeCODEastore(k1, NULL)));
+  }
+
+  return 0;
+}
+
+/*
+ * ifne L1
+ * ...
+ * L1:
+ * dup
+ * ifne L2
+ * --------->
+ * ifne L2
+ * ...
+ * L1:
+ * dup
+ * ifne L2
+ */
+/* TODO: Doesn't do anything. Test again. */
+int simplify_chained_ifneqs(CODE **c)
+{ int l1, l2;
+  if (is_ifne(*c, &l1) &&
+      is_dup(next(destination(l1))) &&
+      is_ifne(nextby(destination(l1), 2), &l2)) {
+    return replace(c, 1, makeCODEifne(l2, NULL));
   }
 
   return 0;
@@ -66,7 +107,7 @@ int goto_last_label(CODE **c)
  * ifneq L3   (L1 & L2 must be unique)
  */
 /* TODO: Add this pattern for other if-constructs. */
-int simplify_consec_ifeqs(CODE **c)
+int simplify_ifeqs(CODE **c)
 { int l1, l2, l3, l4, l5, x1, x2;
   if (is_ifeq(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
@@ -92,7 +133,7 @@ int simplify_consec_ifeqs(CODE **c)
  * --------->
  * ifeq L3   (L1 & L2 must be unique)
  */
-int simplify_consec_ifneq_and_ifeq(CODE **c)
+int simplify_ifneq_then_ifeq(CODE **c)
 { int l1, l2, l3, l4, l5, x1, x2;
   if (is_ifne(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
@@ -102,6 +143,48 @@ int simplify_consec_ifneq_and_ifeq(CODE **c)
       is_label(nextby(*c, 5), &l4) && l4 == l2 &&
       is_ifeq(nextby(*c, 6), &l5)) {
     return replace(c, 7, makeCODEifeq(l5, NULL));
+  }
+
+  return 0;
+}
+
+/* 
+ * ifneq L1
+ * {ldc 0, iconst_0}
+ * goto L2
+ * L1:
+ * {ldc 1, iconst_1}
+ * L2:
+ * dup
+ * ifeq L3
+ * pop
+ * --------->
+ * ifneq L1
+ * iconst_0
+ * goto L3
+ * L1:       (L1 & L2 must be unique)
+ */
+ /* TODO: Doesn't do anything. Test again. */
+int simplify_ifneq_dup_ifeq(CODE **c)
+{ int l1, l2, l3, l4, l5, x1, x2;
+  if (is_ifne(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifeq(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEifne(l1,
+        makeCODEldc_int(0,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
   }
 
   return 0;
@@ -118,7 +201,7 @@ int simplify_consec_ifneq_and_ifeq(CODE **c)
  * --------->
  * if_acmpneq L3   (L1 & L2 must be unique)
  */
-int simplify_consec_if_acmpeq_and_ifeq(CODE **c)
+int simplify_ifacmpeq_then_ifeq(CODE **c)
 { int l1, l2, l3, l4, l5, x1, x2;
   if (is_if_acmpeq(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
@@ -144,7 +227,7 @@ int simplify_consec_if_acmpeq_and_ifeq(CODE **c)
  * --------->
  * if_acmpeq L3   (L1 & L2 must be unique)
  */
-int simplify_consec_if_acmpneq_and_ifeq(CODE **c)
+int simplify_ifacmpneq_then_ifeq(CODE **c)
 { int l1, l2, l3, l4, l5, x1, x2;
   if (is_if_acmpne(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
@@ -170,7 +253,7 @@ int simplify_consec_if_acmpneq_and_ifeq(CODE **c)
  * --------->
  * if_icmpneq L3   (L1 & L2 must be unique)
  */
-int simplify_consec_if_icmpeq_and_ifeq(CODE **c)
+int simplify_ificmpeq_then_ifeq(CODE **c)
 { int l1, l2, l3, l4, l5, x1, x2;
   if (is_if_icmpeq(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
@@ -196,7 +279,7 @@ int simplify_consec_if_icmpeq_and_ifeq(CODE **c)
  * --------->
  * if_icmpge L3   (L1 & L2 must be unique)
  */
-int simplify_consec_if_icmplt_and_ifeq(CODE **c)
+int simplify_ificmplt_then_ifeq(CODE **c)
 { int l1, l2, l3, l4, l5, x1, x2;
   if (is_if_icmplt(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
@@ -217,7 +300,7 @@ int simplify_consec_if_icmplt_and_ifeq(CODE **c)
  * --------->
  * ifeq L
  */
-int simplify_icmpeq_zero(CODE **c)
+int simplify_ificmpeq_zero(CODE **c)
 { int k, l;
   if (is_ldc_int(*c, &k) && k == 0 && is_if_icmpeq(next(*c), &l)) {
     return replace(c, 2, makeCODEifeq(l, NULL));
@@ -232,7 +315,7 @@ int simplify_icmpeq_zero(CODE **c)
  * --------->
  * ifneq L
  */
-int simplify_icmpne_zero(CODE **c)
+int simplify_ificmpne_zero(CODE **c)
 { int k, l;
   if (is_ldc_int(*c, &k) && k == 0 && is_if_icmpne(next(*c), &l)) {
     return replace(c, 2, makeCODEifne(l, NULL));
@@ -316,10 +399,10 @@ int strip_after_return(CODE **c)
 }
 
 /*
- * {return, ireturn}
+ * i?return
  * nop
  * -------->
- * {return, ireturn}  (Not areturn)
+ * i?return (Not areturn)
  */
 int strip_nops_after_return(CODE **c)
 { if (is_return(*c) && is_nop(next(*c))) {
@@ -680,24 +763,6 @@ int simplify_istore_iload(CODE **c) {
     return 0;
 }
 
-/* astore x
- * aload x
- * ------->
- * dup
- * astore x
- */
-
-int simplify_astore_aload(CODE **c) {
-    int x, y;
-    if (is_astore(*c, &x) && is_aload(next(*c), &y)) {
-        if (x == y) {
-            return replace(c, 2, makeCODEdup(makeCODEastore(x, NULL)));
-        }
-        return 0;
-    }
-    return 0;
-}
-
 /* aload 0
  * .......
  * .......
@@ -851,20 +916,23 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 34
+#define OPTS 33
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
   drop_dead_label,
-  goto_last_label,
-  simplify_consec_ifeqs,
-  simplify_consec_ifneq_and_ifeq,
-  simplify_consec_if_acmpeq_and_ifeq,
-  simplify_consec_if_acmpneq_and_ifeq,
-  simplify_consec_if_icmpeq_and_ifeq,
-  simplify_consec_if_icmplt_and_ifeq,
-  simplify_icmpeq_zero,
-  simplify_icmpne_zero,
+  // goto_last_label,
+  simplify_astore_aload,
+  // simplify_chained_ifneqs,
+  simplify_ifeqs,
+  simplify_ifneq_then_ifeq,
+  // simplify_ifneq_dup_ifeq,
+  simplify_ifacmpeq_then_ifeq,
+  simplify_ifacmpneq_then_ifeq,
+  simplify_ificmpeq_then_ifeq,
+  simplify_ificmplt_then_ifeq,
+  simplify_ificmpeq_zero,
+  simplify_ificmpne_zero,
   simplify_invokenonvirtual,
   strip_after_return,
   load_load_swap,
@@ -883,7 +951,6 @@ OPTI optimization[OPTS] = {
   simplify_dup_cmpeq,
   simplify_istore,
   simplify_istore_iload,
-  simplify_astore_aload,
   simplify_putfield,
   /* Laurie's patterns. */
   positive_increment,
