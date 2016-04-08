@@ -35,28 +35,39 @@ then
 	# Calculate code length differences and output.
 	if [[ $total -ge $totalo ]]
 	then
+		# Absolute difference of opt. vs. no opt.
 		diff1=$(expr $total - $totalo)
+		# Percentage difference of opt. vs. no opt.
 		perc1=`echo "print '%.2f' % (float($diff1) / $total * 100)" | python`
 		if [[ $totalo -ge $last_totalo ]]
 		then
+			# Absolute difference of opt. vs. last opt.
 			diff2=$(expr $totalo - $last_totalo)
+			# Percentage difference of opt. vs. last opt.
 			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
 			echo -e "OUR OPT.: $totalo ( -$diff1 NO OPT. (-$perc1%), +$diff2 LAST OPT. (+$perc2%) )"
 		else
 			diff2=$(expr $last_totalo - $totalo)
+			# Percentage difference of opt. vs. last opt.
 			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
 			echo -e "OUR OPT.: $totalo ( -$diff1 NO OPT. (-$perc1%), -$diff2 LAST OPT. (-$perc2%) )"
 		fi 
 	else
+		# Absolute difference of opt. vs. no opt.
 		diff1=$(expr $totalo - $total)
+		# Percentage difference of opt. vs. no opt.
 		perc1=`echo "print '%.2f' % (float($diff1) / $total * 100)" | python`
 		if [[ $totalo -ge $last_totalo ]]
 		then
+			# Absolute difference of opt. vs. last opt.
 			diff2=$(expr $totalo - $last_totalo)
+			# Percentage difference of opt. vs. last opt.
 			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
 			echo -e "OUR OPT.: $totalo ( +$diff1 NO OPT. ($perc1%), +$diff2 LAST OPT. (+$perc2%) )"
 		else
+			# Absolute difference of opt. vs. last opt.
 			diff2=$(expr $last_totalo - $totalo)
+			# Percentage difference of opt. vs. last opt.
 			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
 			echo -e "OUR OPT.: $totalo ( +$diff1 NO OPT. ($perc1%), -$diff2 LAST OPT. (-$perc2%) )"
 		fi
