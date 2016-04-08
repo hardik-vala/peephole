@@ -213,4 +213,4 @@ else
 fi
 
 # Store the newly calculated total.
-echo $totalo > $PEEPDIR/scripts/.last_total_opt_code_length
+[[ $totalo != "" ]] && echo $totalo > $PEEPDIR/scripts/.last_total_opt_code_length
