@@ -1359,20 +1359,6 @@ int simplify_dup_cmpeq(CODE **c)
   return 0;
 }
 
-/* remove any sort of loads followed by pops
- */
-int rm_redundant_loads(CODE **c)
-{
-  int x;
-  if (is_iload(*c, &x) && is_pop(next(*c)))
-  {
-    CODE *n = next(*c);
-    kill_line(&n);
-    return kill_line(c);
-  }
-  return 0;
-}
-
 /* iload 1
  * istore 1
  * -------->
@@ -1558,7 +1544,7 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 31
+#define OPTS 30
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
@@ -1587,7 +1573,6 @@ OPTI optimization[OPTS] = {
   simplify_division_right,
   rm_same_iload_istore,
   rm_same_aload_astore,
-  rm_redundant_loads,
   simplify_dup_cmpeq,
   simplify_istore,
   /* Laurie's patterns. */
