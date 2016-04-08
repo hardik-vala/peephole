@@ -624,6 +624,31 @@ int simplify_chained_ifneqs(CODE **c)
 }
 
 /*
+ * iconst_0
+ * goto L1
+ * ...
+ * L1:
+ * ifeq L2
+ * --------->
+ * goto L2
+ * ...
+ * L1:
+ * ifeq L2
+ */
+int simplify_goto_then_ifeq(CODE **c) {
+  int x, l1, l2;
+  if (is_ldc_int(*c, &x) && x == 0 &&
+      is_goto(next(*c), &l1) &&
+      is_ifeq(next(destination(l1)), &l2)) {
+    droplabel(l1);
+    copylabel(l2);
+    return replace(c, 2, makeCODEgoto(l2, NULL));
+  }
+
+  return 0;
+}
+
+/*
  * {ldc 0, iconst_0}
  * if_icmpeq L
  * --------->
@@ -1228,7 +1253,7 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 29
+#define OPTS 30
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
@@ -1237,6 +1262,7 @@ OPTI optimization[OPTS] = {
   collapse_local_branching,
   collapse_local_branching_with_dup,
   // simplify_chained_ifneqs,
+  simplify_goto_then_ifeq,
   simplify_ificmpeq_zero,
   simplify_ificmpne_zero,
   simplify_invokenonvirtual,
