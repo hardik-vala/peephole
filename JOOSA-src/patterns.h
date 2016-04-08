@@ -31,6 +31,29 @@ int drop_dead_label(CODE **c)
   return 0;
 }
 
+/*
+ * goto L1:
+ * ...
+ * L1:
+ * L2:
+ * --------->
+ * goto L2:
+ * ...
+ * L1:
+ * L2:
+ */
+/* TODO: I don't think this one helps at all... */
+int goto_last_label(CODE **c)
+{ int l1, l2;
+  if (is_goto(*c, &l1) && is_label(next(destination(l1)), &l2)) {
+    droplabel(l1);
+    copylabel(l2);
+    return replace(c, 1, makeCODEgoto(l2, NULL));
+  }
+
+  return 0;
+}
+
 /* 
  * ifeq L1
  * {ldc 0, iconst_0}
@@ -79,6 +102,58 @@ int simplify_consec_ifneq_and_ifeq(CODE **c)
       is_label(nextby(*c, 5), &l4) && l4 == l2 &&
       is_ifeq(nextby(*c, 6), &l5)) {
     return replace(c, 7, makeCODEifeq(l5, NULL));
+  }
+
+  return 0;
+}
+
+/* 
+ * if_acmpeq L1
+ * {ldc 0, iconst_0}
+ * goto L2
+ * L1:
+ * {ldc 1, iconst_1}
+ * L2:
+ * ifeq L3
+ * --------->
+ * if_acmpneq L3   (L1 & L2 must be unique)
+ */
+int simplify_consec_if_acmpeq_and_ifeq(CODE **c)
+{ int l1, l2, l3, l4, l5, x1, x2;
+  if (is_if_acmpeq(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_ifeq(nextby(*c, 6), &l5)) {
+    return replace(c, 7, makeCODEif_acmpne(l5, NULL));
+  }
+
+  return 0;
+}
+
+/* 
+ * if_acmpneq L1
+ * {ldc 0, iconst_0}
+ * goto L2
+ * L1:
+ * {ldc 1, iconst_1}
+ * L2:
+ * ifeq L3
+ * --------->
+ * if_acmpeq L3   (L1 & L2 must be unique)
+ */
+int simplify_consec_if_acmpneq_and_ifeq(CODE **c)
+{ int l1, l2, l3, l4, l5, x1, x2;
+  if (is_if_acmpne(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_ifeq(nextby(*c, 6), &l5)) {
+    return replace(c, 7, makeCODEif_acmpeq(l5, NULL));
   }
 
   return 0;
@@ -776,13 +851,16 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 31
+#define OPTS 34
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
   drop_dead_label,
+  goto_last_label,
   simplify_consec_ifeqs,
   simplify_consec_ifneq_and_ifeq,
+  simplify_consec_if_acmpeq_and_ifeq,
+  simplify_consec_if_acmpneq_and_ifeq,
   simplify_consec_if_icmpeq_and_ifeq,
   simplify_consec_if_icmplt_and_ifeq,
   simplify_icmpeq_zero,
