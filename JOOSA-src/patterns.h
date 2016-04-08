@@ -141,7 +141,7 @@ int branch_to_last_label(CODE **c)
  * branch2 L3         (branch2: ifneq, ifeq, ifnonnull, ifnull, if_icmpneq,
  *                     ificmpeq, if_icmple, if_icmpge, if_icmplt, if_icmpgt,
  *                     if_acmpneq, or if_acmpeq, respectively, depending on the
- *                     identity of branch1)
+ *                     identity of branch1) (The opposite of branch1)
  */
 int collapse_local_branching(CODE **c)
 { int l1, l2, l3, l4, l5, x1, x2;
@@ -282,7 +282,7 @@ int collapse_local_branching(CODE **c)
 }
 
 /* 
- * branch L1          (branch: ifeq, ifneq, ifnull, ifnonnull, if_icmpeq,
+ * branch1 L1         (branch1: ifeq, ifneq, ifnull, ifnonnull, if_icmpeq,
  *                     ificmpneq, if_icmpgt, if_icmplt, if_icmpge, if_icmple,
  *                     if_acmpeq, or if_acmpneq) (NOT goto)
  *                    (L1: Unique)
@@ -292,10 +292,11 @@ int collapse_local_branching(CODE **c)
  * {ldc 1, iconst_1}
  * L2:
  * dup
- * ifeq L3
+ * {ifeq, ifneq} L3
  * pop
  * --------->
- * branch L1
+ * branch2 L1         (If ifeq, then branch2 = branch1, otherwise branch2 is the
+*                     opposite)
  * iconst_0
  * goto L3
  * L1:
@@ -303,7 +304,7 @@ int collapse_local_branching(CODE **c)
 int collapse_local_branching_with_dup(CODE **c) {
   int l1, l2, l3, l4, l5, x1, x2;
   
-  /* ifeq */
+  /* ifeq, ifeq */
   if (is_ifeq(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -324,7 +325,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* ifneq */
+  /* ifeq, ifneq */
+  if (is_ifeq(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEifne(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* ifneq, ifeq */
   if (is_ifne(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -345,7 +367,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* ifnull */
+  /* ifneq, ifneq */
+  if (is_ifne(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEifeq(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* ifnull, ifeq */
   if (is_ifnull(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -366,7 +409,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* ifnonnull */
+  /* ifnull, ifneq */
+  if (is_ifnull(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEifnonnull(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* ifnonnull, ifeq */
   if (is_ifnonnull(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -387,7 +451,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* if_icmpeq */
+  /* ifnonnull, ifneq */
+  if (is_ifnonnull(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEifnull(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_icmpeq, ifeq */
   if (is_if_icmpeq(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -408,7 +493,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* if_icmpneq */
+  /* if_icmpeq, ifneq */
+  if (is_if_icmpeq(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEif_icmpne(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_icmpneq, ifeq */
   if (is_if_icmpne(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -429,7 +535,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* if_icmpgt */
+  /* if_icmpneq, ifneq */
+  if (is_if_icmpne(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEif_icmpeq(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_icmpgt, ifeq */
   if (is_if_icmpgt(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -450,7 +577,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* if_icmplt */
+  /* if_icmpgt, ifneq */
+  if (is_if_icmpgt(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEif_icmple(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_icmplt, ifeq */
   if (is_if_icmplt(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -471,7 +619,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* if_icmpge */
+  /* if_icmplt, ifneq */
+  if (is_if_icmplt(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEif_icmpge(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_icmpge, ifeq */
   if (is_if_icmpge(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -492,7 +661,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* if_icmple */
+  /* if_icmpge, ifneq */
+  if (is_if_icmpge(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEif_icmplt(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_icmple, ifeq */
   if (is_if_icmple(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -513,7 +703,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* if_acmpeq */
+  /* if_icmple, ifneq */
+  if (is_if_icmple(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEif_icmpgt(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_acmpeq, ifeq */
   if (is_if_acmpeq(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -534,7 +745,28 @@ int collapse_local_branching_with_dup(CODE **c) {
     );
   }
 
-  /* if_acmpneq */
+  /* if_acmpeq, ifneq */
+  if (is_if_acmpeq(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEif_acmpne(l1,
+        makeCODEldc_int(1,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_acmpneq, ifeq */
   if (is_if_acmpne(*c, &l1) && uniquelabel(l1) &&
       is_ldc_int(next(*c), &x1) && x1 == 0 &&
       is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
@@ -547,6 +779,27 @@ int collapse_local_branching_with_dup(CODE **c) {
     return replace(c, 9,
       makeCODEif_acmpne(l1,
         makeCODEldc_int(0,
+          makeCODEgoto(l5,
+            makeCODElabel(l1, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* if_acmpneq, ifneq */
+  if (is_if_acmpne(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_dup(nextby(*c, 6)) &&
+      is_ifne(nextby(*c, 7), &l5) &&
+      is_pop(nextby(*c, 8))) {
+    return replace(c, 9,
+      makeCODEif_acmpeq(l1,
+        makeCODEldc_int(1,
           makeCODEgoto(l5,
             makeCODElabel(l1, NULL)
           )
