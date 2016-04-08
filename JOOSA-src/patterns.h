@@ -301,8 +301,8 @@ int collapse_local_branching(CODE **c)
  * goto L3
  * L1:
  */
-int collapse_local_branching_with_dup(CODE **c) {
-  int l1, l2, l3, l4, l5, x1, x2;
+int collapse_local_branching_with_dup(CODE **c)
+{ int l1, l2, l3, l4, l5, x1, x2;
   
   /* ifeq, ifeq */
   if (is_ifeq(*c, &l1) && uniquelabel(l1) &&
@@ -888,8 +888,8 @@ int simplify_chained_ifneqs(CODE **c)
  * L1:
  * {ifeq, ifneq} L2
  */
-int simplify_goto_if(CODE **c) {
-  int x, l1, l2;
+int simplify_goto_if(CODE **c)
+{ int x, l1, l2;
   
   /* iconst_0, ifeq */
   if (is_ldc_int(*c, &x) && x == 0 &&
@@ -927,8 +927,8 @@ int simplify_goto_if(CODE **c) {
  * dup
  * {ifeq, ifneq} L2
  */
-int simplify_goto_dup_if(CODE **c) {
-  int x, l1, l2;
+int simplify_goto_dup_if(CODE **c)
+{ int x, l1, l2;
   
   /* iconst_0, ifeq */
   if (is_ldc_int(*c, &x) && x == 0 &&
@@ -1026,7 +1026,7 @@ int simplify_invokenonvirtual(CODE **c)
  * swap
  * putfield arg
  * pop
- * ------------>
+ * --------->
  * aload 0
  * swap
  * putfield arg
@@ -1046,6 +1046,32 @@ int simplify_putfield(CODE **c)
         )
       )
     );
+  }
+
+  return 0;
+}
+
+/*
+ * ldc x      (Integer or string)
+ * aload k
+ * swap
+ * --------->
+ * aload k
+ * ldc x
+ */
+int simplify_simple_swap(CODE **c)
+{ int k;
+
+  /* Integer. */
+  int x;
+  if (is_ldc_int(*c, &x) && is_aload(next(*c), &k) && is_swap(nextby(*c, 2))) {
+    return replace(c, 3, makeCODEaload(k, makeCODEldc_int(x, NULL)));
+  }
+
+  /* String. */
+  char* s;
+  if (is_ldc_string(*c, &s) && is_aload(next(*c), &k) && is_swap(nextby(*c, 2))) {
+    return replace(c, 3, makeCODEaload(k, makeCODEldc_string(s, NULL)));
   }
 
   return 0;
@@ -1544,7 +1570,7 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 30
+#define OPTS 31
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
@@ -1559,6 +1585,7 @@ OPTI optimization[OPTS] = {
   simplify_ificmpne_zero,
   simplify_invokenonvirtual,
   simplify_putfield,
+  simplify_simple_swap,
   simplify_store_load,
   strip_after_return,
   load_load_swap,
