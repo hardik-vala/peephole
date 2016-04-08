@@ -472,6 +472,36 @@ int simplify_invokenonvirtual(CODE **c)
   return 0;
 }
 
+/* dup
+ * aload 0
+ * swap
+ * putfield arg
+ * pop
+ * ------------>
+ * aload 0
+ * swap
+ * putfield arg
+ */
+int simplify_putfield(CODE **c)
+{ int x;
+  char* arg;
+  if (is_dup(*c) &&
+      is_aload(next(*c), &x) && x == 0 &&
+      is_swap(nextby(*c, 2)) &&
+      is_putfield(nextby(*c, 3), &arg) &&
+      is_pop(nextby(*c, 4))) {
+    return replace(c, 5,
+      makeCODEaload(x,
+        makeCODEswap(
+          makeCODEputfield(arg, NULL)
+        )
+      )
+    );
+  }
+  
+  return 0;
+}
+
 /*
  * {return, areturn, ireturn}
  * ...
@@ -878,30 +908,6 @@ int simplify_two_aload_0(CODE **c) {
                                         makeCODEinvokevirtual(arg_6,
                                         NULL))))))
                                     )));
-        }
-        return 0;
-    }
-    return 0;
-}
-
-/* dup
- * aload 0
- * swap
- * putfield arg
- * pop
- * ------------>
- * aload 0
- * swap
- * putfield arg
- */
-
-int simplify_putfield(CODE **c) {
-    int x;
-    char* arg;
-    if (is_dup(*c) && is_aload(next(*c), &x) && is_swap(next(next(*c))) &&
-        is_putfield(next(next(next(*c))), &arg) && is_pop(next(next(next(next(*c)))))) {
-        if (x == 0) {
-            return replace(c, 5, makeCODEaload(x, makeCODEswap(makeCODEputfield(arg, NULL))));
         }
         return 0;
     }
