@@ -18,20 +18,6 @@
 
 
 /*
- * L: (Dead)
- * --------->
- *
- */
-int drop_dead_label(CODE **c)
-{ int l;
-  if (is_label(*c, &l) && deadlabel(l)) {
-    return replace(c, 1, NULL);
-  }
-
-  return 0;
-}
-
-/*
  * branch L1:
  * ...
  * L1:
@@ -135,73 +121,6 @@ int branch_to_last_label(CODE **c)
     droplabel(l1);
     copylabel(l2);
     return replace(c, 1, makeCODEif_acmpne(l2, NULL));
-  }
-
-  return 0;
-}
-
-/* 
- * load k
- * load k
- * ------->
- * load k
- * dup
- */
-/* TODO: Doesn't do anything. Test again. */
-int simplify_double_load(CODE **c)
-{ int k1, k2;
-  /* iload */
-  if (is_iload(*c, &k1) && is_iload(next(*c), &k2) && k1 == k2) {
-    CODE* n = next(*c);
-    return replace(&n, 1, makeCODEdup(NULL));
-  }
-
-  /* aload */
-  if (is_aload(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
-    CODE* n = next(*c);
-    return replace(&n, 1, makeCODEdup(NULL));
-  }
-
-  return 0;
-}
-
-
-/* 
- * astore k
- * aload k
- * --------->
- * dup
- * astore k
- */
-int simplify_astore_aload(CODE **c)
-{ int k1, k2;
-  if (is_astore(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
-    return replace(c, 2, makeCODEdup(makeCODEastore(k1, NULL)));
-  }
-
-  return 0;
-}
-
-/*
- * ifne L1
- * ...
- * L1:
- * dup
- * ifne L2
- * --------->
- * ifne L2
- * ...
- * L1:
- * dup
- * ifne L2
- */
-/* TODO: Doesn't do anything. Test again. */
-int simplify_chained_ifneqs(CODE **c)
-{ int l1, l2;
-  if (is_ifne(*c, &l1) &&
-      is_dup(next(destination(l1))) &&
-      is_ifne(nextby(destination(l1), 2), &l2)) {
-    return replace(c, 1, makeCODEifne(l2, NULL));
   }
 
   return 0;
@@ -362,6 +281,87 @@ int collapse_local_branching(CODE **c)
   return 0;
 }
 
+/*
+ * L: (Dead)
+ * --------->
+ *
+ */
+int drop_dead_label(CODE **c)
+{ int l;
+  if (is_label(*c, &l) && deadlabel(l)) {
+    return replace(c, 1, NULL);
+  }
+
+  return 0;
+}
+
+/* 
+ * load k
+ * load k
+ * ------->
+ * load k
+ * dup
+ */
+/* TODO: Doesn't do anything. Test again. */
+int simplify_double_load(CODE **c)
+{ int k1, k2;
+  /* iload */
+  if (is_iload(*c, &k1) && is_iload(next(*c), &k2) && k1 == k2) {
+    CODE* n = next(*c);
+    return replace(&n, 1, makeCODEdup(NULL));
+  }
+
+  /* aload */
+  if (is_aload(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
+    CODE* n = next(*c);
+    return replace(&n, 1, makeCODEdup(NULL));
+  }
+
+  return 0;
+}
+
+
+/* 
+ * astore k
+ * aload k
+ * --------->
+ * dup
+ * astore k
+ */
+int simplify_astore_aload(CODE **c)
+{ int k1, k2;
+  if (is_astore(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
+    return replace(c, 2, makeCODEdup(makeCODEastore(k1, NULL)));
+  }
+
+  return 0;
+}
+
+/*
+ * ifne L1
+ * ...
+ * L1:
+ * dup
+ * ifne L2
+ * --------->
+ * ifne L2
+ * ...
+ * L1:
+ * dup
+ * ifne L2
+ */
+/* TODO: Doesn't do anything. Test again. */
+int simplify_chained_ifneqs(CODE **c)
+{ int l1, l2;
+  if (is_ifne(*c, &l1) &&
+      is_dup(next(destination(l1))) &&
+      is_ifne(nextby(destination(l1), 2), &l2)) {
+    return replace(c, 1, makeCODEifne(l2, NULL));
+  }
+
+  return 0;
+}
+
 /* 
  * ifneq L1
  * {ldc 0, iconst_0}
@@ -498,7 +498,7 @@ int simplify_putfield(CODE **c)
       )
     );
   }
-  
+
   return 0;
 }
 
@@ -1008,15 +1008,16 @@ int simplify_multiplication_right(CODE **c)
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
-  drop_dead_label,
   branch_to_last_label,
+  drop_dead_label,
+  collapse_local_branching,
   simplify_astore_aload,
   // simplify_chained_ifneqs,
-  collapse_local_branching,
   // simplify_ifneq_dup_ifeq,
   simplify_ificmpeq_zero,
   simplify_ificmpne_zero,
   simplify_invokenonvirtual,
+  simplify_putfield,
   strip_after_return,
   load_load_swap,
   aconst_null_dup_ifeq,
@@ -1034,7 +1035,6 @@ OPTI optimization[OPTS] = {
   simplify_dup_cmpeq,
   simplify_istore,
   simplify_istore_iload,
-  simplify_putfield,
   /* Laurie's patterns. */
   positive_increment,
   simplify_astore,
