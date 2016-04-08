@@ -877,22 +877,33 @@ int simplify_chained_ifneqs(CODE **c)
 }
 
 /*
- * iconst_0
+ * {iconst_0, iconst_1}
  * goto L1
  * ...
  * L1:
- * ifeq L2
+ * {ifeq, ifneq} L2
  * --------->
  * goto L2
  * ...
  * L1:
- * ifeq L2
+ * {ifeq, ifneq} L2
  */
-int simplify_goto_then_ifeq(CODE **c) {
+int simplify_goto_if(CODE **c) {
   int x, l1, l2;
+  
+  /* iconst_0, ifeq */
   if (is_ldc_int(*c, &x) && x == 0 &&
       is_goto(next(*c), &l1) &&
       is_ifeq(next(destination(l1)), &l2)) {
+    droplabel(l1);
+    copylabel(l2);
+    return replace(c, 2, makeCODEgoto(l2, NULL));
+  }
+
+  /* iconst_1, ifneq */
+  if (is_ldc_int(*c, &x) && x == 1 &&
+      is_goto(next(*c), &l1) &&
+      is_ifne(next(destination(l1)), &l2)) {
     droplabel(l1);
     copylabel(l2);
     return replace(c, 2, makeCODEgoto(l2, NULL));
@@ -902,22 +913,24 @@ int simplify_goto_then_ifeq(CODE **c) {
 }
 
 /*
- * iconst_0
+ * {iconst_0, iconst_1}
  * goto L1
  * ...
  * L1:
  * dup
- * ifeq L2
+ * {ifeq, ifneq} L2
  * --------->
- * iconst_0
+ * {iconst_0, iconst_1}
  * goto L2
  * ...
  * L1:
  * dup
- * ifeq L2
+ * {ifeq, ifneq} L2
  */
-int simplify_goto_then_dup_ifeq(CODE **c) {
+int simplify_goto_dup_if(CODE **c) {
   int x, l1, l2;
+  
+  /* iconst_0, ifeq */
   if (is_ldc_int(*c, &x) && x == 0 &&
       is_goto(next(*c), &l1) &&
       is_dup(next(destination(l1))) &&
@@ -925,6 +938,16 @@ int simplify_goto_then_dup_ifeq(CODE **c) {
     droplabel(l1);
     copylabel(l2);
     return replace(c, 2, makeCODEldc_int(0, makeCODEgoto(l2, NULL)));
+  }
+
+  /* iconst_1, ifneq */
+  if (is_ldc_int(*c, &x) && x == 1 &&
+      is_goto(next(*c), &l1) &&
+      is_dup(next(destination(l1))) &&
+      is_ifne(nextby(destination(l1), 2), &l2)) {
+    droplabel(l1);
+    copylabel(l2);
+    return replace(c, 2, makeCODEldc_int(1, makeCODEgoto(l2, NULL)));
   }
 
   return 0;
@@ -1544,8 +1567,8 @@ OPTI optimization[OPTS] = {
   collapse_local_branching,
   collapse_local_branching_with_dup,
   // simplify_chained_ifneqs,
-  simplify_goto_then_ifeq,
-  simplify_goto_then_dup_ifeq,
+  simplify_goto_if,
+  simplify_goto_dup_if,
   simplify_ificmpeq_zero,
   simplify_ificmpne_zero,
   simplify_invokenonvirtual,
