@@ -55,6 +55,32 @@ int goto_last_label(CODE **c)
 }
 
 /* 
+ * load k
+ * load k
+ * ------->
+ * load k
+ * dup
+ */
+/* TODO: Doesn't do anything. Test again. */
+int simplify_double_load(CODE **c)
+{ int k1, k2;
+  /* iload */
+  if (is_iload(*c, &k1) && is_iload(next(*c), &k2) && k1 == k2) {
+    CODE* n = next(*c);
+    return replace(&n, 1, makeCODEdup(NULL));
+  }
+
+  /* aload */
+  if (is_aload(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
+    CODE* n = next(*c);
+    return replace(&n, 1, makeCODEdup(NULL));
+  }
+
+  return 0;
+}
+
+
+/* 
  * astore k
  * aload k
  * --------->
@@ -647,33 +673,6 @@ int simplify_dup_cmpeq(CODE **c)
   return 0;
 }
 
-/* load 1
- * load 1
- * ------->
- * load 1
- * dup
- */
-int replace_double_load_with_dup(CODE **c)
-{
-  int x,y;
-  if (is_iload(*c, &x) && is_iload(next(*c), &y)) {
-    if (x == y)
-    {
-      CODE* n = next(*c);
-      return replace(&n, 1, makeCODEdup(NULL));
-    }
-  }
-  else if (is_aload(*c, &x) && is_aload(next(*c), &y))
-  {
-    if (x == y)
-    {
-      CODE* n = next(*c);
-      return replace(&n, 1, makeCODEdup(NULL));
-    }
-  }
-  return 0;
-}
-
 /* remove any sort of loads followed by pops
  */
 int rm_redundant_loads(CODE **c)
@@ -898,7 +897,6 @@ int simplify_goto_goto(CODE **c)
  *                               dup
  *                               iadd
  */
-
 int simplify_multiplication_right(CODE **c)
 { int x,k;
   if (is_iload(*c,&x) &&
