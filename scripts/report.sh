@@ -41,11 +41,11 @@ then
 		then
 			diff2=$(expr $totalo - $last_totalo)
 			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
-			echo -e "OUR OPT.: $totalo ( -$diff1 NO OPT. (-$perc1%), +$diff2 LAST OPT. (-$perc2%) )"
+			echo -e "OUR OPT.: $totalo ( -$diff1 NO OPT. (-$perc1%), +$diff2 LAST OPT. (+$perc2%) )"
 		else
 			diff2=$(expr $last_totalo - $totalo)
 			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
-			echo -e "OUR OPT.: $totalo ( -$diff1 NO OPT. (-$perc1%), -$diff2 LAST OPT. (+$perc2%) )"
+			echo -e "OUR OPT.: $totalo ( -$diff1 NO OPT. (-$perc1%), -$diff2 LAST OPT. (-$perc2%) )"
 		fi 
 	else
 		diff1=$(expr $totalo - $total)
@@ -54,11 +54,11 @@ then
 		then
 			diff2=$(expr $totalo - $last_totalo)
 			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
-			echo -e "OUR OPT.: $totalo ( +$diff1 NO OPT. ($perc1%), +$diff2 LAST OPT. (-$perc2%) )"
+			echo -e "OUR OPT.: $totalo ( +$diff1 NO OPT. ($perc1%), +$diff2 LAST OPT. (+$perc2%) )"
 		else
 			diff2=$(expr $last_totalo - $totalo)
 			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
-			echo -e "OUR OPT.: $totalo ( +$diff1 NO OPT. ($perc1%), -$diff2 LAST OPT. (+$perc2%) )"
+			echo -e "OUR OPT.: $totalo ( +$diff1 NO OPT. ($perc1%), -$diff2 LAST OPT. (-$perc2%) )"
 		fi
 	fi
 else
@@ -76,4 +76,4 @@ else
 fi
 
 # Store the newly calculated total.
-[[ $totalo == "" ]] && echo $totalo > $PEEPDIR/scripts/.last_total_opt_code_length
+echo $totalo > $PEEPDIR/scripts/.last_total_opt_code_length
