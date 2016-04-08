@@ -36,23 +36,29 @@ then
 	if [[ $total -ge $totalo ]]
 	then
 		diff1=$(expr $total - $totalo)
+		perc1=`echo "print '%.2f' % (float($diff1) / $total * 100)" | python`
 		if [[ $totalo -ge $last_totalo ]]
 		then
 			diff2=$(expr $totalo - $last_totalo)
-			echo -e "OUR OPT.: $totalo (-$diff1 NO OPT., +$diff2 LAST OPT.)"
+			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
+			echo -e "OUR OPT.: $totalo ( -$diff1 NO OPT. (-$perc1%), +$diff2 LAST OPT. (-$perc2%) )"
 		else
 			diff2=$(expr $last_totalo - $totalo)
-			echo -e "OUR OPT.: $totalo (-$diff1 NO OPT., -$diff2 LAST OPT.)"
+			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
+			echo -e "OUR OPT.: $totalo ( -$diff1 NO OPT. (-$perc1%), -$diff2 LAST OPT. (+$perc2%) )"
 		fi 
 	else
 		diff1=$(expr $totalo - $total)
+		perc1=`echo "print '%.2f' % (float($diff1) / $total * 100)" | python`
 		if [[ $totalo -ge $last_totalo ]]
 		then
 			diff2=$(expr $totalo - $last_totalo)
-			echo -e "OUR OPT.: $totalo (+$diff1 NO OPT., +$diff2 LAST OPT.)"
+			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
+			echo -e "OUR OPT.: $totalo ( +$diff1 NO OPT. ($perc1%), +$diff2 LAST OPT. (-$perc2%) )"
 		else
 			diff2=$(expr $last_totalo - $totalo)
-			echo -e "OUR OPT.: $totalo (+$diff1 NO OPT., -$diff2 LAST OPT.)"
+			perc2=`echo "print '%.2f' % (float($diff2) / $last_totalo * 100)" | python`
+			echo -e "OUR OPT.: $totalo ( +$diff1 NO OPT. ($perc1%), -$diff2 LAST OPT. (+$perc2%) )"
 		fi
 	fi
 else
