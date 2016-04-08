@@ -582,6 +582,7 @@ int drop_dead_label(CODE **c)
 /* TODO: Doesn't do anything. Test again. */
 int simplify_double_load(CODE **c)
 { int k1, k2;
+
   /* iload */
   if (is_iload(*c, &k1) && is_iload(next(*c), &k2) && k1 == k2) {
     CODE* n = next(*c);
@@ -592,23 +593,6 @@ int simplify_double_load(CODE **c)
   if (is_aload(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
     CODE* n = next(*c);
     return replace(&n, 1, makeCODEdup(NULL));
-  }
-
-  return 0;
-}
-
-
-/* 
- * astore k
- * aload k
- * --------->
- * dup
- * astore k
- */
-int simplify_astore_aload(CODE **c)
-{ int k1, k2;
-  if (is_astore(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
-    return replace(c, 2, makeCODEdup(makeCODEastore(k1, NULL)));
   }
 
   return 0;
@@ -732,6 +716,29 @@ int simplify_putfield(CODE **c)
         )
       )
     );
+  }
+
+  return 0;
+}
+
+/* 
+ * store k
+ * load k
+ * --------->
+ * dup
+ * store k
+ */
+int simplify_store_load(CODE **c)
+{ int k1, k2;
+
+  /* istore, iload */
+  if (is_istore(*c, &k1) && is_iload(next(*c), &k2) && k1 == k2) {
+    return replace(c, 2, makeCODEdup(makeCODEistore(k1, NULL)));
+  }
+
+  /* astore, aload */
+  if (is_astore(*c, &k1) && is_aload(next(*c), &k2) && k1 == k2) {
+    return replace(c, 2, makeCODEdup(makeCODEastore(k1, NULL)));
   }
 
   return 0;
@@ -1093,24 +1100,6 @@ int rm_redundant_loads(CODE **c)
    return 0;
  }
 
-/* istore x
- * iload x
- * ------->
- * dup
- * istore x
- */
-
-int simplify_istore_iload(CODE **c) {
-    int x, y;
-    if (is_istore(*c, &x) && is_iload(next(*c), &y)) {
-        if (x == y) {
-            return replace(c, 2, makeCODEdup(makeCODEistore(x, NULL)));
-        }
-        return 0;
-    }
-    return 0;
-}
-
 /* aload 0
  * .......
  * .......
@@ -1239,7 +1228,7 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 30
+#define OPTS 29
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
@@ -1247,12 +1236,12 @@ OPTI optimization[OPTS] = {
   drop_dead_label,
   collapse_local_branching,
   collapse_local_branching_with_dup,
-  simplify_astore_aload,
   // simplify_chained_ifneqs,
   simplify_ificmpeq_zero,
   simplify_ificmpne_zero,
   simplify_invokenonvirtual,
   simplify_putfield,
+  simplify_store_load,
   strip_after_return,
   load_load_swap,
   aconst_null_dup_ifeq,
@@ -1269,7 +1258,6 @@ OPTI optimization[OPTS] = {
   rm_redundant_loads,
   simplify_dup_cmpeq,
   simplify_istore,
-  simplify_istore_iload,
   /* Laurie's patterns. */
   positive_increment,
   simplify_astore,
