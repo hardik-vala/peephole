@@ -131,10 +131,10 @@ int branch_to_last_label(CODE **c)
  *                     ificmpneq, if_icmpgt, if_icmplt, if_icmpge, if_icmple,
  *                     if_acmpeq, or if_acmpneq) (NOT goto)
  *                    (L1: Unique)
- * {ldc 0, iconst_0}
+ * iconst_0
  * goto L2            (L2: Unique)
  * L1:
- * {ldc 1, iconst_1}
+ * iconst_1
  * L2:
  * ifeq L3
  * --------->
@@ -286,17 +286,17 @@ int collapse_local_branching(CODE **c)
  *                     ificmpneq, if_icmpgt, if_icmplt, if_icmpge, if_icmple,
  *                     if_acmpeq, or if_acmpneq) (NOT goto)
  *                    (L1: Unique)
- * {ldc 0, iconst_0}
+ * iconst_0
  * goto L2            (L2: Unique)
  * L1:
- * {ldc 1, iconst_1}
+ * iconst_1
  * L2:
  * dup
  * {ifeq, ifneq} L3
  * pop
  * --------->
  * branch2 L1         (If ifeq, then branch2 = branch1, otherwise branch2 is the
-*                     opposite)
+ *                     opposite)
  * iconst_0
  * goto L3
  * L1:
@@ -954,7 +954,7 @@ int simplify_goto_dup_if(CODE **c) {
 }
 
 /*
- * {ldc 0, iconst_0}
+ * iconst_0
  * if_icmpeq L
  * --------->
  * ifeq L
@@ -969,7 +969,7 @@ int simplify_ificmpeq_zero(CODE **c)
 }
 
 /*
- * {ldc 0, iconst_0}
+ * iconst_0
  * if_icmpneq L
  * --------->
  * ifneq L
