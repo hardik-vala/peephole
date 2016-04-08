@@ -986,36 +986,78 @@ int simplify_ificmpne_zero(CODE **c)
 /*
  * new ...
  * dup
+ * ldc x (?)             (Integer or string)
  * invokenonvirtual ...
- * aload_0
+ * aload k
  * swap
  * --------->
- * aload_0
+ * aload k
  * new ...
  * dup
+ * ldc x (?)
  * invokenonvirtual ...
  */
-/* TODO: Should we check the method corresponding to the invokenonvirtual
- * accepts no arguments? */
 int simplify_invokenonvirtual(CODE **c)
-{ int x;
+{ int k;
   char *arg1, *arg2;
-  if (is_new(*c, &arg1) && is_dup(next(*c)) &&
-      is_invokenonvirtual(next(next(*c)), &arg2) &&
-      is_aload(next(next(next(*c))), &x) &&
-      is_swap(next(next(next(next(*c)))))) {
-      /* TODO: Is this check needed? */
-      if (x == 0) {
-        return replace(c, 5,
-          makeCODEaload(x,
-            makeCODEnew(arg1,
-              makeCODEdup(
-                makeCODEinvokenonvirtual(arg2, NULL)
-              )
+
+  /* No ldc */
+  if (is_new(*c, &arg1) &&
+      is_dup(next(*c)) &&
+      is_invokenonvirtual(nextby(*c, 2), &arg2) &&
+      is_aload(nextby(*c, 3), &k) &&
+      is_swap(nextby(*c, 4))) {
+    return replace(c, 5,
+      makeCODEaload(k,
+        makeCODEnew(arg1,
+          makeCODEdup(
+            makeCODEinvokenonvirtual(arg2, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* With ldc (integer) */
+  int x;
+  if (is_new(*c, &arg1) &&
+      is_dup(next(*c)) &&
+      is_ldc_int(nextby(*c, 2), &x) &&
+      is_invokenonvirtual(nextby(*c, 3), &arg2) &&
+      is_aload(nextby(*c, 4), &k) &&
+      is_swap(nextby(*c, 5))) {
+    return replace(c, 6,
+      makeCODEaload(k,
+        makeCODEnew(arg1,
+          makeCODEdup(
+            makeCODEldc_int(x,
+              makeCODEinvokenonvirtual(arg2, NULL)
             )
           )
-        );
-      }
+        )
+      )
+    );
+  }
+
+  /* With ldc (string) */
+  char* s;
+  if (is_new(*c, &arg1) &&
+      is_dup(next(*c)) &&
+      is_ldc_string(nextby(*c, 2), &s) &&
+      is_invokenonvirtual(nextby(*c, 3), &arg2) &&
+      is_aload(nextby(*c, 4), &k) &&
+      is_swap(nextby(*c, 5))) {
+    return replace(c, 6,
+      makeCODEaload(k,
+        makeCODEnew(arg1,
+          makeCODEdup(
+            makeCODEldc_string(s,
+              makeCODEinvokenonvirtual(arg2, NULL)
+            )
+          )
+        )
+      )
+    );
   }
 
   return 0;
