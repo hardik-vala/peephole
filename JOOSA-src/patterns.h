@@ -59,6 +59,32 @@ int simplify_consec_ifeqs(CODE **c)
 }
 
 /* 
+ * ifneq L1
+ * {ldc 0, iconst_0}
+ * goto L2
+ * L1:
+ * {ldc 1, iconst_1}
+ * L2:
+ * ifeq L3
+ * --------->
+ * ifeq L3   (L1 & L2 must be unique)
+ */
+int simplify_consec_ifneq_and_ifeq(CODE **c)
+{ int l1, l2, l3, l4, l5, x1, x2;
+  if (is_ifne(*c, &l1) && uniquelabel(l1) &&
+      is_ldc_int(next(*c), &x1) && x1 == 0 &&
+      is_goto(nextby(*c, 2), &l2) && uniquelabel(l2) &&
+      is_label(nextby(*c, 3), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 4), &x2) && x2 == 1 &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2 &&
+      is_ifeq(nextby(*c, 6), &l5)) {
+    return replace(c, 7, makeCODEifeq(l5, NULL));
+  }
+
+  return 0;
+}
+
+/* 
  * if_icmpeq L1
  * {ldc 0, iconst_0}
  * goto L2
@@ -135,6 +161,44 @@ int simplify_icmpne_zero(CODE **c)
 { int k, l;
   if (is_ldc_int(*c, &k) && k == 0 && is_if_icmpne(next(*c), &l)) {
     return replace(c, 2, makeCODEifne(l, NULL));
+  }
+
+  return 0;
+}
+
+/*
+ * new ...
+ * dup
+ * invokenonvirtual ...
+ * aload_0
+ * swap
+ * --------->
+ * aload_0
+ * new ...
+ * dup
+ * invokenonvirtual ...
+ */
+/* TODO: Should we check the method corresponding to the invokenonvirtual
+ * accepts no arguments? */
+int simplify_invokenonvirtual(CODE **c)
+{ int x;
+  char *arg1, *arg2;
+  if (is_new(*c, &arg1) && is_dup(next(*c)) &&
+      is_invokenonvirtual(next(next(*c)), &arg2) &&
+      is_aload(next(next(next(*c))), &x) &&
+      is_swap(next(next(next(next(*c)))))) {
+      /* TODO: Is this check needed? */
+      if (x == 0) {
+        return replace(c, 5,
+          makeCODEaload(x,
+            makeCODEnew(arg1,
+              makeCODEdup(
+                makeCODEinvokenonvirtual(arg2, NULL)
+              )
+            )
+          )
+        );
+      }
   }
 
   return 0;
@@ -621,44 +685,6 @@ int simplify_putfield(CODE **c) {
     return 0;
 }
 
-/*
- * new ...
- * dup
- * invokenonvirtual ...
- * aload_0
- * swap
- * --------->
- * aload_0
- * new ...
- * dup
- * invokenonvirtual ...
- */
-/* TODO: Should we check the method corresponding to the invokenonvirtual
- * accepts no arguments? */
-int simplify_invokenonvirtual(CODE **c)
-{ int x;
-  char *arg1, *arg2;
-  if (is_new(*c, &arg1) && is_dup(next(*c)) &&
-      is_invokenonvirtual(next(next(*c)), &arg2) &&
-      is_aload(next(next(next(*c))), &x) &&
-      is_swap(next(next(next(next(*c)))))) {
-      /* TODO: Is this check needed? */
-      if (x == 0) {
-        return replace(c, 5,
-          makeCODEaload(x,
-            makeCODEnew(arg1,
-              makeCODEdup(
-                makeCODEinvokenonvirtual(arg2, NULL)
-              )
-            )
-          )
-        );
-      }
-  }
-
-  return 0;
-}
-
 
 /*********************
  * LAURIE'S PATTERNS *
@@ -750,16 +776,18 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 30
+#define OPTS 31
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
   drop_dead_label,
   simplify_consec_ifeqs,
+  simplify_consec_ifneq_and_ifeq,
   simplify_consec_if_icmpeq_and_ifeq,
   simplify_consec_if_icmplt_and_ifeq,
   simplify_icmpeq_zero,
   simplify_icmpne_zero,
+  simplify_invokenonvirtual,
   strip_after_return,
   load_load_swap,
   aconst_null_dup_ifeq,
@@ -779,7 +807,6 @@ OPTI optimization[OPTS] = {
   simplify_istore_iload,
   simplify_astore_aload,
   simplify_putfield,
-  simplify_invokenonvirtual,
   /* Laurie's patterns. */
   positive_increment,
   simplify_astore,
