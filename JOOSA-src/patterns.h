@@ -1437,6 +1437,13 @@ int simplify_putfield(CODE **c)
 }
 
 /*
+ * load k
+ * load l
+ * swap 
+ * --------->
+ * load k
+ * load l
+ *
  * ldc x      (Integer or string)
  * aload k
  * swap
@@ -1514,6 +1521,54 @@ int simplify_putfield(CODE **c)
 int simplify_simple_swap(CODE **c)
 { int k, l, m, x;
   char *s, *arg1, *arg2, *arg3;
+
+  /*
+   * iload k
+   * iload l
+   * swap 
+   * --------->
+   * iload k
+   * iload l
+   */
+  if (is_iload(*c, &k) && is_iload(next(*c), &l) && is_swap(nextby(*c, 2))) {
+    return replace(c, 3, makeCODEiload(l, makeCODEiload(k, NULL)));
+  }
+
+  /*
+   * iload k
+   * aload l
+   * swap 
+   * --------->
+   * aload k
+   * iload l
+   */
+  if (is_iload(*c, &k) && is_aload(next(*c), &l) && is_swap(nextby(*c, 2))) {
+    return replace(c, 3, makeCODEaload(l, makeCODEiload(k, NULL)));
+  }
+
+  /*
+   * aload k
+   * iload l
+   * swap 
+   * --------->
+   * iload k
+   * aload l
+   */
+  if (is_aload(*c, &k) && is_iload(next(*c), &l) && is_swap(nextby(*c, 2))) {
+    return replace(c, 3, makeCODEiload(l, makeCODEaload(k, NULL)));
+  }
+
+  /*
+   * aload k
+   * aload l
+   * swap 
+   * --------->
+   * aload k
+   * aload l
+   */
+  if (is_aload(*c, &k) && is_aload(next(*c), &l) && is_swap(nextby(*c, 2))) {
+    return replace(c, 3, makeCODEaload(l, makeCODEaload(k, NULL)));
+  }
 
   /* 
    * ldc x      (Integer)
@@ -1787,80 +1842,6 @@ int strip_nops_after_return(CODE **c)
     return replace(c, 2, makeCODEireturn(NULL));
   }
 
-  return 0;
-}
-
-int load_load_swap(CODE **c)
-{
-  int first, second;
-  if (is_iload(*c, &first))
-  {
-    if (is_iload(next(*c), &second))
-    {
-      if (is_swap(next(next(*c))))
-      {
-        return replace(c,3, makeCODEiload(second, makeCODEiload(first, NULL)));
-      }
-    }
-    else if(is_aload(next(*c), &second))
-    {
-      if (is_swap(next(next(*c))))
-      {
-        return replace(c,3,makeCODEaload(second, makeCODEiload(first, NULL)));
-      }
-    }
-  }
-  else if (is_aload(*c, &first))
-  {
-    if (is_iload(next(*c), &second))
-    {
-      if (is_swap(next(next(*c))))
-      {
-        return replace(c,3, makeCODEiload(second, makeCODEaload(first, NULL)));
-      }
-    }
-    else if(is_aload(next(*c), &second))
-    {
-      if (is_swap(next(next(*c))))
-      {
-        return replace(c,3,makeCODEaload(second, makeCODEaload(first, NULL)));
-      }
-    }
-  }
-  if (is_iload(*c, &first))
-  {
-    if (is_iload(next(*c), &second))
-    {
-      if (is_swap(next(next(*c))))
-      {
-        return replace(c,3, makeCODEiload(second, makeCODEiload(first, NULL)));
-      }
-    }
-    else if(is_aload(next(*c), &second))
-    {
-      if (is_swap(next(next(*c))))
-      {
-        return replace(c,3,makeCODEaload(second, makeCODEiload(first, NULL)));
-      }
-    }
-  }
-  else if (is_aload(*c, &first))
-  {
-    if (is_iload(next(*c), &second))
-    {
-      if (is_swap(next(next(*c))))
-      {
-        return replace(c,3, makeCODEiload(second, makeCODEaload(first, NULL)));
-      }
-    }
-    else if(is_aload(next(*c), &second))
-    {
-      if (is_swap(next(next(*c))))
-      {
-        return replace(c,3,makeCODEaload(second, makeCODEaload(first, NULL)));
-      }
-    }
-  }
   return 0;
 }
 
@@ -2165,7 +2146,7 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 36
+#define OPTS 35
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
@@ -2190,7 +2171,6 @@ OPTI optimization[OPTS] = {
   strip_after_goto,
   strip_after_return,
   strip_stupid_goto,
-  load_load_swap,
   simplify_dup_cmpeq,
   strip_nops_after_return,
   simplify_addition_left,
