@@ -984,6 +984,62 @@ int simplify_ificmpne_zero(CODE **c)
 }
 
 /*
+ * ifnull L1    (L1: Unique)
+ * goto L2
+ * L1:
+ * pop
+ * ldc x
+ * L2:
+ * --------->
+ * ifnonnull L2
+ * pop
+ * ldc x        (Integer or string)
+ * L2:
+ */
+int simplify_ifnull(CODE **c)
+{ int l1, l2, l3, l4, l5;
+  
+  /* ldc integer */
+  int x;
+  if (is_ifnull(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_pop(nextby(*c, 3)) &&
+      is_ldc_int(nextby(*c, 4), &x) &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2) {
+    return replace(c, 6,
+      makeCODEifnonnull(l2,
+        makeCODEpop(
+          makeCODEldc_int(x,
+            makeCODElabel(l2, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  /* ldc string */
+  char* s;
+  if (is_ifnull(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_pop(nextby(*c, 3)) &&
+      is_ldc_string(nextby(*c, 4), &s) &&
+      is_label(nextby(*c, 5), &l4) && l4 == l2) {
+    return replace(c, 6,
+      makeCODEifnonnull(l2,
+        makeCODEpop(
+          makeCODEldc_string(s,
+            makeCODElabel(l2, NULL)
+          )
+        )
+      )
+    );
+  }
+
+  return 0;
+}
+/*
  * new ...
  * dup
  * ldc x (?)             (Integer or string)
@@ -1612,7 +1668,7 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 31
+#define OPTS 32
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
@@ -1625,6 +1681,7 @@ OPTI optimization[OPTS] = {
   simplify_goto_dup_if,
   simplify_ificmpeq_zero,
   simplify_ificmpne_zero,
+  simplify_ifnull,
   simplify_invokenonvirtual,
   simplify_putfield,
   simplify_simple_swap,
