@@ -1328,7 +1328,34 @@ int simplify_invokenonvirtual(CODE **c)
   return 0;
 }
 
-/* dup
+/* 
+ * ldc x        (Integer or string)
+ * dup
+ * ifnull L
+ * --------->
+ * ldc x
+ */
+int simplify_ldc_dup_ifnull(CODE **c)
+{ int x, l;
+  char* s;
+
+  /* Integer */
+  if (is_ldc_int(*c, &x) && is_dup(next(*c)) && is_ifnull(nextby(*c, 2), &l)) {
+    droplabel(l);
+    return replace(c, 3, makeCODEldc_int(x, NULL));
+  }
+
+  /* String */
+  if (is_ldc_string(*c, &s) && is_dup(next(*c)) && is_ifnull(nextby(*c, 2), &l)) {
+    droplabel(l);
+    return replace(c, 3, makeCODEldc_string(s, NULL));
+  }
+
+  return 0;
+}
+
+/* 
+ * dup
  * aload 0
  * swap
  * putfield arg
@@ -1542,35 +1569,6 @@ int strip_nops_after_return(CODE **c)
     return replace(c, 2, makeCODEireturn(NULL));
   }
 
-  return 0;
-}
-
-int ldc_dup_ifnull(CODE **c)
-{
-  int x, y;
-  char* s;
-  if (is_ldc_int(*c, &x))
-  {
-    if (is_dup(next(*c)))
-    {
-      if (is_ifnull(next(next(*c)), &y))
-      {
-        droplabel(y);
-        return replace(c,3,makeCODEldc_int(x, NULL));
-      }
-    }
-  }
-  else if (is_ldc_string(*c, &s))
-  {
-    if (is_dup(next(*c)))
-    {
-      if (is_ifnull(next(next(*c)), &y))
-      {
-        droplabel(y);
-        return replace(c,3,makeCODEldc_string(s, NULL));
-      }
-    }
-  }
   return 0;
 }
 
@@ -1979,6 +1977,7 @@ OPTI optimization[OPTS] = {
   simplify_ificmpne_zero,
   simplify_ifnull,
   simplify_invokenonvirtual,
+  simplify_ldc_dup_ifnull,
   simplify_putfield,
   simplify_simple_swap,
   simplify_store_load,
@@ -1989,7 +1988,6 @@ OPTI optimization[OPTS] = {
   aconst_null_dup_ifeq,
   simplify_dup_cmpeq,
   strip_nops_after_return,
-  ldc_dup_ifnull,
   simplify_addition_left,
   simplify_addition_right,
   simpify_subtraction_right,
