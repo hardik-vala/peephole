@@ -1365,19 +1365,72 @@ int simplify_putfield(CODE **c)
  * --------->
  * aload k
  * ldc x
+ *
+ * iload k
+ * ldc x
+ * iadd
+ * aload l
+ * swap
+ * --------->
+ * aload l
+ * iload k
+ * ldc x
+ * iadd
  */
 int simplify_simple_swap(CODE **c)
-{ int k, x;
+{ int k, l, x;
   char* s;
 
-  /* Integer. */
+  /* 
+   * ldc x      (Integer)
+   * aload k
+   * swap
+   * --------->
+   * aload k
+   * ldc x
+   */
   if (is_ldc_int(*c, &x) && is_aload(next(*c), &k) && is_swap(nextby(*c, 2))) {
     return replace(c, 3, makeCODEaload(k, makeCODEldc_int(x, NULL)));
   }
 
-  /* String. */
+  /* 
+   * ldc x      (String)
+   * aload k
+   * swap
+   * --------->
+   * aload k
+   * ldc x
+   */
   if (is_ldc_string(*c, &s) && is_aload(next(*c), &k) && is_swap(nextby(*c, 2))) {
     return replace(c, 3, makeCODEaload(k, makeCODEldc_string(s, NULL)));
+  }
+
+  /* 
+   * iload k
+   * ldc x
+   * iadd
+   * aload l
+   * swap
+   * --------->
+   * aload l
+   * iload k
+   * ldc x
+   * iadd
+   */
+  if (is_iload(*c, &k) &&
+      is_ldc_int(next(*c), &x) &&
+      is_iadd(nextby(*c, 2)) &&
+      is_aload(nextby(*c, 3), &l) &&
+      is_swap(nextby(*c, 4))) {
+    return replace(c, 5,
+      makeCODEaload(l,
+        makeCODEiload(k,
+          makeCODEldc_int(x,
+            makeCODEiadd(NULL)
+          )
+        )
+      )
+    );
   }
 
   return 0;
