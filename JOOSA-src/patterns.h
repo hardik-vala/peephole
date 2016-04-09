@@ -126,6 +126,217 @@ int branch_to_last_label(CODE **c)
   return 0;
 }
 
+/*
+ * branch1 L1         (branch1: ifeq, ifneq, ifnull, ifnonnull, if_icmpeq,
+ *                     ificmpneq, if_icmpgt, if_icmplt, if_icmpge, if_icmple,
+ *                     if_acmpeq, or if_acmpneq) (NOT goto)
+ *                    (L1: Unique)
+ * goto L2
+ * L1:
+ * ldc x              (Integer or string)
+ * --------->
+ * branch2 L2         (branch2: Opposite of branch1)
+ * ldc x
+ */
+int collapse_branch_goto(CODE **c)
+{ int l1, l2, l3, x;
+  char* s;
+
+  /* ifeq, ldc integer */
+  if (is_ifeq(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEifne(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* ifneq, ldc integer */
+  if (is_ifne(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEifeq(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* ifnull, ldc integer */
+  if (is_ifnull(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEifnonnull(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* ifnonnull, ldc integer */
+  if (is_ifnonnull(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEifnull(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* if_icmpeq, ldc integer */
+  if (is_if_icmpeq(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEif_icmpne(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* if_icmpneq, ldc integer */
+  if (is_if_icmpne(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEif_icmpeq(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* if_icmpgt, ldc integer */
+  if (is_if_icmpgt(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEif_icmple(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* if_icmplt, ldc integer */
+  if (is_if_icmplt(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEif_icmpge(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* if_icmpge, ldc integer */
+  if (is_if_icmpge(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEif_icmplt(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* if_icmple, ldc integer */
+  if (is_if_icmple(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEif_icmpgt(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* if_acmpeq, ldc integer */
+  if (is_if_acmpeq(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEif_acmpne(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* if_acmpneq, ldc integer */
+  if (is_if_acmpne(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_int(nextby(*c, 3), &x)) {
+    return replace(c, 4, makeCODEif_acmpeq(l2, makeCODEldc_int(x, NULL)));
+  }
+
+  /* ifeq, ldc string */
+  if (is_ifeq(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEifne(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* ifneq, ldc string */
+  if (is_ifne(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEifeq(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* ifnull, ldc string */
+  if (is_ifnull(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEifnonnull(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* ifnonnull, ldc string */
+  if (is_ifnonnull(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEifnull(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* if_icmpeq, ldc string */
+  if (is_if_icmpeq(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEif_icmpne(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* if_icmpneq, ldc string */
+  if (is_if_icmpne(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEif_icmpeq(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* if_icmpgt, ldc string */
+  if (is_if_icmpgt(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEif_icmple(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* if_icmplt, ldc string */
+  if (is_if_icmplt(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEif_icmpge(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* if_icmpge, ldc string */
+  if (is_if_icmpge(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEif_icmplt(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* if_icmple, ldc string */
+  if (is_if_icmple(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEif_icmpgt(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* if_acmpeq, ldc string */
+  if (is_if_acmpeq(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEif_acmpne(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  /* if_acmpneq, ldc string */
+  if (is_if_acmpne(*c, &l1) && uniquelabel(l1) &&
+      is_goto(next(*c), &l2) &&
+      is_label(nextby(*c, 2), &l3) && l3 == l1 &&
+      is_ldc_string(nextby(*c, 3), &s)) {
+    return replace(c, 4, makeCODEif_acmpeq(l2, makeCODEldc_string(s, NULL)));
+  }
+
+  return 0;
+}
+
 /* 
  * branch1 L1         (branch1: ifeq, ifneq, ifnull, ifnonnull, if_icmpeq,
  *                     ificmpneq, if_icmpgt, if_icmplt, if_icmpge, if_icmple,
@@ -997,10 +1208,10 @@ int simplify_ificmpne_zero(CODE **c)
  * L2:
  */
 int simplify_ifnull(CODE **c)
-{ int l1, l2, l3, l4, l5;
-  
+{ int l1, l2, l3, l4, l5, x;
+  char* s;
+
   /* ldc integer */
-  int x;
   if (is_ifnull(*c, &l1) && uniquelabel(l1) &&
       is_goto(next(*c), &l2) &&
       is_label(nextby(*c, 2), &l3) && l3 == l1 &&
@@ -1019,7 +1230,6 @@ int simplify_ifnull(CODE **c)
   }
 
   /* ldc string */
-  char* s;
   if (is_ifnull(*c, &l1) && uniquelabel(l1) &&
       is_goto(next(*c), &l2) &&
       is_label(nextby(*c, 2), &l3) && l3 == l1 &&
@@ -1668,14 +1878,15 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 32
+#define OPTS 33
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
   branch_to_last_label,
-  drop_dead_label,
+  collapse_branch_goto,
   collapse_local_branching,
   collapse_local_branching_with_dup,
+  drop_dead_label,
   // simplify_chained_ifneqs,
   simplify_goto_if,
   simplify_goto_dup_if,
