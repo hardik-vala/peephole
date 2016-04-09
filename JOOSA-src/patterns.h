@@ -508,7 +508,7 @@ int collapse_local_branching(CODE **c)
  * --------->
  * branch2 L1         (If ifeq, then branch2 = branch1, otherwise branch2 is the
  *                     opposite)
- * iconst_0
+ * ldc x              (x: 0 if ifeq, 1 otherwise)
  * goto L3
  * L1:
  */
@@ -1075,7 +1075,7 @@ int simplify_double_load(CODE **c)
  * dup
  * ifne L2
  */
-/* TODO: Doesn't do anything. Test again. */
+/* TODO: Doesn't do anything (Actually adds to the total code length). */
 int simplify_chained_ifneqs(CODE **c)
 { int l1, l2;
   if (is_ifne(*c, &l1) &&
@@ -1208,7 +1208,7 @@ int simplify_ificmpne_zero(CODE **c)
  * L2:
  */
 int simplify_ifnull(CODE **c)
-{ int l1, l2, l3, l4, l5, x;
+{ int l1, l2, l3, l4, x;
   char* s;
 
   /* ldc integer */
@@ -1249,6 +1249,7 @@ int simplify_ifnull(CODE **c)
 
   return 0;
 }
+
 /*
  * new ...
  * dup
@@ -1264,8 +1265,8 @@ int simplify_ifnull(CODE **c)
  * invokenonvirtual ...
  */
 int simplify_invokenonvirtual(CODE **c)
-{ int k;
-  char *arg1, *arg2;
+{ int k, x;
+  char *arg1, *arg2, *s;
 
   /* No ldc */
   if (is_new(*c, &arg1) &&
@@ -1285,7 +1286,6 @@ int simplify_invokenonvirtual(CODE **c)
   }
 
   /* With ldc (integer) */
-  int x;
   if (is_new(*c, &arg1) &&
       is_dup(next(*c)) &&
       is_ldc_int(nextby(*c, 2), &x) &&
@@ -1306,7 +1306,6 @@ int simplify_invokenonvirtual(CODE **c)
   }
 
   /* With ldc (string) */
-  char* s;
   if (is_new(*c, &arg1) &&
       is_dup(next(*c)) &&
       is_ldc_string(nextby(*c, 2), &s) &&
@@ -1368,16 +1367,15 @@ int simplify_putfield(CODE **c)
  * ldc x
  */
 int simplify_simple_swap(CODE **c)
-{ int k;
+{ int k, x;
+  char* s;
 
   /* Integer. */
-  int x;
   if (is_ldc_int(*c, &x) && is_aload(next(*c), &k) && is_swap(nextby(*c, 2))) {
     return replace(c, 3, makeCODEaload(k, makeCODEldc_int(x, NULL)));
   }
 
   /* String. */
-  char* s;
   if (is_ldc_string(*c, &s) && is_aload(next(*c), &k) && is_swap(nextby(*c, 2))) {
     return replace(c, 3, makeCODEaload(k, makeCODEldc_string(s, NULL)));
   }
