@@ -9,7 +9,7 @@ BENCHDIR=$PEEPDIR/PeepholeBenchmarks
 
 # Code lengths WITHOUT optimizations (Hard-coded) for each benchmark.
 bench1=1148
-bench2=400
+bench2=571
 bench3=3382
 bench4=3906
 bench5=1258
