@@ -141,8 +141,8 @@ fi
 echo ""
 
 echo -e "TOTAL, NO OPT.: $total"
-echo -e "TOTAL, A- OPT.: (TODO)"
-echo -e "TOTAL, A+ OPT.: (TODO)"
+echo -e "TOTAL, A- OPT.: 20703"
+echo -e "TOTAL, A+ OPT.: 16134"
 
 # The file containing the last total code length with optimizations exists.
 if [[ -f $PEEPDIR/scripts/.last_total_opt_code_length ]]
