@@ -1078,7 +1078,7 @@ int simplify_double_load(CODE **c)
 /* TODO: Doesn't do anything (Actually adds to the total code length). */
 int simplify_chained_ifneqs(CODE **c)
 { int l1, l2;
-  if (is_ifne(*c, &l1) &&
+  if (is_ifne(*c, &l1) && uniquelabel(l1) &&
       is_dup(next(destination(l1))) &&
       is_ifne(nextby(destination(l1), 2), &l2)) {
     return replace(c, 1, makeCODEifne(l2, NULL));
@@ -1407,12 +1407,28 @@ int simplify_store_load(CODE **c)
 }
 
 /*
+ * goto L
+ * (Non-label)
+ * --------->
+ * goto L
+ */
+int strip_after_goto(CODE **c)
+{ int l1, l2;
+  if (is_goto(*c, &l1) &&
+      !is_label(next(*c), &l2)) {
+    return replace(c, 2, makeCODEgoto(l1, NULL));
+  }
+
+  return 0;
+}
+
+/*
  * {return, areturn, ireturn}
  * ...
- * L2:
+ * L:
  * --------->
  * {return, areturn, ireturn}
- * L2:
+ * L:
  */
 /* TODO: Generalize this pattern to handle any number of intervening
  * statements. */
@@ -1437,6 +1453,22 @@ int strip_after_return(CODE **c)
       !is_label(next(*c), &l1) &&
       is_label(nextby(*c, 2), &l2)) {
     return replace_modified(c, 3, makeCODEireturn(makeCODElabel(l2, NULL)));
+  }
+
+  return 0;
+}
+
+/*
+ * goto L
+ * L:
+ * --------->
+ * L:
+ */
+int strip_stupid_goto(CODE **c)
+{ int l1, l2;
+  if (is_goto(*c, &l1) &&
+      is_label(next(*c), &l2) && l1 == l2) {
+    return replace(c, 2, makeCODElabel(l1, NULL));
   }
 
   return 0;
@@ -1470,6 +1502,7 @@ int ldc_dup_ifnull(CODE **c)
     {
       if (is_ifnull(next(next(*c)), &y))
       {
+        droplabel(y);
         return replace(c,3,makeCODEldc_int(x, NULL));
       }
     }
@@ -1480,6 +1513,7 @@ int ldc_dup_ifnull(CODE **c)
     {
       if (is_ifnull(next(next(*c)), &y))
       {
+        droplabel(y);
         return replace(c,3,makeCODEldc_string(s, NULL));
       }
     }
@@ -1876,7 +1910,7 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 33
+#define OPTS 35
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
@@ -1895,7 +1929,9 @@ OPTI optimization[OPTS] = {
   simplify_putfield,
   simplify_simple_swap,
   simplify_store_load,
+  strip_after_goto,
   strip_after_return,
+  strip_stupid_goto,
   load_load_swap,
   aconst_null_dup_ifeq,
   simplify_dup_cmpeq,
