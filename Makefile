@@ -3,17 +3,13 @@ PEEPBENCHDIR ?= $(PEEPDIR)/PeepholeBenchmarks
 # Peephole lib directory.
 PEEPLIBDIR ?= $(PEEPDIR)/lib
 
-# JOOS compile the Benchmarks with optimizations, and then make sure the
-# Benchmark tests pass.
-joosco: build
-	$(PEEPDIR)/scripts/report.sh -O
+# JOOS compile the Benchmarks with and without optimizations, report the results and
+# then make sure the Benchmark tests pass.
+joosc: build
+	$(PEEPDIR)/scripts/joosc_and_report.sh
 	@-$(MAKE) test >& test.log
 	@less test.log
 	@rm -f test.log
-
-# JOOS compile the Benchmarks with no optimizations.
-joosc: build
-	$(PEEPDIR)/scripts/report.sh
 
 # Build the JOOS source.
 build:
