@@ -1063,6 +1063,30 @@ int simplify_aconstnull_dup_ifcmpeq(CODE **c)
   return 0;
 }
 
+/*
+ * aconst_null
+ * {if_acmpeq, if_acmpne} L
+ * -------->
+ * {ifnull, ifnonnull} L
+ */
+int simplify_aconstnull_if(CODE **c)
+{ int l;
+
+  /* if_acmpeq */
+  if (is_aconst_null(*c) &&
+      is_if_acmpeq(next(*c), &l)) {
+    return replace(c, 2, makeCODEifnull(l, NULL));
+  }
+
+  /* if_acmpne */
+  if (is_aconst_null(*c) &&
+      is_if_acmpne(next(*c), &l)) {
+    return replace(c, 2, makeCODEifnonnull(l, NULL));
+  }
+
+  return 0;
+}
+
 /* 
  * load k
  * load k
@@ -1471,6 +1495,15 @@ int simplify_putfield(CODE **c)
  * iload l
  * invokenonvirtual ...
  *
+ * new Room
+ * dup
+ * aload_0
+ * ldc "north"
+ * iload 5
+ * invokenonvirtual Room/<init>(LRoom;Ljava/lang/String;I)V
+ * aload_0
+ * swap
+
  * aconst_null
  * aload k
  * swap
@@ -2132,7 +2165,7 @@ int simplify_multiplication_right(CODE **c)
 
 
 /* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
-#define OPTS 35
+#define OPTS 36
 
 OPTI optimization[OPTS] = {
   /* Our patterns. */
@@ -2143,6 +2176,7 @@ OPTI optimization[OPTS] = {
   drop_dead_label,
   // simplify_chained_ifneqs,
   simplify_aconstnull_dup_ifcmpeq,
+  simplify_aconstnull_if,
   simplify_goto_if,
   simplify_goto_dup_if,
   simplify_ificmpeq_zero,
