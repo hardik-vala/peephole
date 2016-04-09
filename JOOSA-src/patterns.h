@@ -1403,10 +1403,25 @@ int simplify_putfield(CODE **c)
  * iload k
  * ldc x
  * iadd
+ *
+ * new ...
+ * dup
+ * aload k
+ * getfield ...
+ * invokenonvirtual ...
+ * aload k
+ * swap
+ * --------->
+ * aload k
+ * new ...
+ * dup
+ * aload k
+ * getfield ...
+ * invokenonvirtual ...
  */
 int simplify_simple_swap(CODE **c)
 { int k, l, x;
-  char* s;
+  char *s, *arg1, *arg2, *arg3;
 
   /* 
    * ldc x      (Integer)
@@ -1455,6 +1470,67 @@ int simplify_simple_swap(CODE **c)
           makeCODEldc_int(x,
             makeCODEiadd(NULL)
           )
+        )
+      )
+    );
+  }
+
+  /*
+   * new ...
+   * dup
+   * aload k
+   * getfield ...
+   * invokenonvirtual ...
+   * aload k
+   * swap
+   * --------->
+   * aload k
+   * new ...
+   * dup
+   * aload k
+   * getfield ...
+   * invokenonvirtual ...
+   */
+  if (is_new(*c, &arg1) &&
+      is_dup(next(*c)) &&
+      is_aload(nextby(*c, 2), &k) &&
+      is_getfield(nextby(*c, 3), &arg2) &&
+      is_invokenonvirtual(nextby(*c, 4), &arg3) &&
+      is_aload(nextby(*c, 5), &l) && l == k &&
+      is_swap(nextby(*c, 6))) {
+    return replace(c, 7,
+      makeCODEaload(k,
+        makeCODEnew(arg1,
+          makeCODEdup(
+            makeCODEaload(k,
+              makeCODEgetfield(arg2,
+                makeCODEinvokenonvirtual(arg3, NULL)
+              )
+            )
+          )
+        )
+      )
+    );
+  }
+
+  /*
+   * aload k
+   * getfield ...
+   * aload k
+   * swap
+   * --------->
+   * aload k
+   * dup
+   * getfield ...
+   */
+  if (is_aload(*c, &k) &&
+      is_getfield(next(*c), &arg1) &&
+      is_aload(nextby(*c, 2), &l) && l == k &&
+      is_swap(nextby(*c, 3))) {
+    return replace(c, 4,
+      makeCODEaload(k,
+        makeCODEdup(
+          makeCODEgetfield(arg1, NULL)
         )
       )
     );
