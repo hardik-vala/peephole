@@ -1436,6 +1436,16 @@ int simplify_putfield(CODE **c)
   return 0;
 }
 
+int is_argable(CODE* c, char** a)
+{ if (is_simplepush(c) ||
+      is_dup(c) ||
+      is_getfield(c, a) ||
+      is_invokevirtual(c, a) ||
+      is_invokenonvirtual(c, a))
+      return 1;
+  return 0;
+}
+
 /*
  * load k
  * load l
@@ -1518,8 +1528,8 @@ int simplify_putfield(CODE **c)
  * aload k
  * aconst_null
  */
-int simplify_simple_swap(CODE **c)
-{ int k, l, m, x;
+int simplify_swap(CODE **c)
+{ int k, l, m, x, ll;
   char *s, *arg1, *arg2, *arg3;
 
   /*
@@ -1731,6 +1741,67 @@ int simplify_simple_swap(CODE **c)
    */
   if (is_aconst_null(*c) && is_aload(next(*c), &k) && is_swap(nextby(*c, 2))) {
     return replace(c, 3, makeCODEaload(k, makeCODEaconst_null(NULL)));
+  }
+
+  // if_icmpge stop_4
+  // new Room
+  // dup
+  // aload_0
+  // ldc "north"
+  // iload 5
+  // invokenonvirtual Room/<init>(LRoom;Ljava/lang/String;I)V
+  // aload_0
+  // swap
+  // || is_label(*c, &ll)
+  if (is_if_icmpge(*c, &ll) &&
+      is_new(next(*c), &arg1) &&
+      is_dup(nextby(*c, 2)) &&
+      is_aload(nextby(*c, 3), &k) &&
+      is_ldc_string(nextby(*c, 4), &s) &&
+      is_iload(nextby(*c, 5), &l) &&
+      is_invokenonvirtual(nextby(*c, 6), &arg2) &&
+      is_aload(nextby(*c, 7), &m) &&
+      is_swap(nextby(*c, 8))) {
+    replace(c, 9, makeCODEif_icmpge(ll,
+      makeCODEaload(m,
+        makeCODEnew(arg1,
+          makeCODEdup(
+            makeCODEaload(k,
+              makeCODEldc_string(s,
+                makeCODEiload(l,
+                  makeCODEinvokenonvirtual(arg2, NULL)
+                )
+              )
+            )
+          )
+        )
+      ))
+    );
+  }
+
+  // stop_24:
+  // aload_0
+  // iload 4
+  // invokevirtual Room/generateDescription(I)Ljava/lang/String;
+  // aload_0
+  // swap
+  if (is_label(*c, &ll) &&
+      is_aload(next(*c), &k) &&
+      is_iload(nextby(*c, 2), &l) &&
+      is_invokevirtual(nextby(*c, 3), &arg1) &&
+      is_aload(nextby(*c, 4), &m) &&
+      is_swap(nextby(*c, 5))) {
+    return replace(c, 6,
+      makeCODElabel(ll,
+        makeCODEaload(m,
+          makeCODEaload(k,
+            makeCODEiload(l,
+              makeCODEinvokevirtual(arg1, NULL)
+            )
+          )
+        )
+      )
+    );
   }
 
   return 0;
@@ -2018,44 +2089,6 @@ int simplify_dup_cmpeq(CODE **c)
    return 0;
  }
 
-/* aload 0
- * .......
- * .......
- * .......
- * aload 0
- * .......
- * .......
- * .......
- * ------>
- * aload 0
- * dup
- * TODO: doesn't work
- */
-
-int simplify_two_aload_0(CODE **c) {
-    int x, y;
-    char *arg_1, *arg_2, *arg_3, *arg_4, *arg_5, *arg_6;
-    if (is_aload(*c, &x) && is_getfield(next(*c), &arg_1) &&
-        is_ldc_string(next(next(*c)), &arg_2) && is_invokevirtual(next(next(next(*c))), &arg_3) &&
-        is_aload(next(next(next(next(*c)))), &y) && is_getfield(next(next(next(next(next(*c))))), &arg_4) &&
-        is_ldc_string(next(next(next(next(next(next(*c)))))), &arg_5) && is_invokevirtual(next(next(next(next(next(next(next(*c))))))), &arg_6)) {
-        if (x == 0 && y == 0) {
-            return replace(c, 8, makeCODEaload(x,
-                                    makeCODEdup(
-                                        makeCODEgetfield(arg_1,
-                                        makeCODEldc_string(arg_2,
-                                        makeCODEinvokevirtual(arg_3,
-                                        makeCODEgetfield(arg_4,
-                                        makeCODEldc_string(arg_5,
-                                        makeCODEinvokevirtual(arg_6,
-                                        NULL))))))
-                                    )));
-        }
-        return 0;
-    }
-    return 0;
-}
-
 
 /*********************
  * LAURIE'S PATTERNS *
@@ -2145,7 +2178,6 @@ int simplify_multiplication_right(CODE **c)
 }
 
 
-/* TODO: Sometimes lowering this number results in more optimization (Huh?)... */
 #define OPTS 35
 
 OPTI optimization[OPTS] = {
@@ -2166,7 +2198,7 @@ OPTI optimization[OPTS] = {
   simplify_invokenonvirtual,
   simplify_ldc_dup_ifnull,
   simplify_putfield,
-  simplify_simple_swap,
+  simplify_swap,
   simplify_store_load,
   strip_after_goto,
   strip_after_return,
