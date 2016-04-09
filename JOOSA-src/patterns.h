@@ -1036,6 +1036,33 @@ int drop_dead_label(CODE **c)
   return 0;
 }
 
+/*
+ * aconst_null
+ * dup
+ * {if_acmpeq, if_icmpeq} L
+ * -------->
+ * goto L
+ */
+int simplify_aconstnull_dup_ifcmpeq(CODE **c)
+{ int l;
+
+  /* if_acmpeq */
+  if (is_aconst_null(*c) &&
+      is_dup(next(*c)) &&
+      is_if_acmpeq(nextby(*c, 2), &l)) {
+    return replace(c, 3, makeCODEgoto(l, NULL));
+  }
+
+  /* if_icmpeq */
+  if (is_aconst_null(*c) &&
+      is_dup(next(*c)) &&
+      is_if_icmpeq(nextby(*c, 2), &l)) {
+    return replace(c, 3, makeCODEgoto(l, NULL));
+  }
+
+  return 0;
+}
+
 /* 
  * load k
  * load k
@@ -1418,6 +1445,16 @@ int simplify_putfield(CODE **c)
  * aload k
  * getfield ...
  * invokenonvirtual ...
+ *
+ *
+ * aload k
+ * getfield ...
+ * aload k
+ * swap
+ * --------->
+ * aload k
+ * dup
+ * getfield ...
  */
 int simplify_simple_swap(CODE **c)
 { int k, l, x;
@@ -1722,19 +1759,6 @@ int load_load_swap(CODE **c)
   return 0;
 }
 
-int aconst_null_dup_ifeq(CODE **c)
-{
-  int y;
-  if (is_aconst_null(*c))
-  {
-    if (is_dup(next(*c)) && (is_if_acmpeq(next(next(*c)), &y) || is_if_icmpeq(next(next(*c)), &y)))
-    {
-      return replace(c, 3, makeCODEgoto(y, NULL));
-    }
-  }
-  return 0;
-}
-
 /*
  * ldc 0
  * iload x
@@ -1742,7 +1766,6 @@ int aconst_null_dup_ifeq(CODE **c)
  * ------>
  * iload x
  */
-
 int simplify_addition_left(CODE **c) {
     int x, k;
     if (is_ldc_int(*c, &k) && is_iload(next(*c), &x) && is_iadd(next(next(*c)))) {
@@ -2047,6 +2070,7 @@ OPTI optimization[OPTS] = {
   collapse_local_branching_with_dup,
   drop_dead_label,
   // simplify_chained_ifneqs,
+  simplify_aconstnull_dup_ifcmpeq,
   simplify_goto_if,
   simplify_goto_dup_if,
   simplify_ificmpeq_zero,
@@ -2061,7 +2085,6 @@ OPTI optimization[OPTS] = {
   strip_after_return,
   strip_stupid_goto,
   load_load_swap,
-  aconst_null_dup_ifeq,
   simplify_dup_cmpeq,
   strip_nops_after_return,
   simplify_addition_left,
